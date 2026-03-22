@@ -35,6 +35,12 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
+## Como rodar testes de dominio
+```bash
+pip install -r requirements-dev.txt
+python -m pytest packages/domain/tests -q
+```
+
 ## Regras de Branch
 - main: release estavel
 - dev: desenvolvimento
