@@ -1,73 +1,95 @@
 # RAG MEMORY - sisPROJETOS LIGHT S.A.
 
-## 1. Finalidade
-Este arquivo centraliza memoria de contexto para agentes e automacoes, reduzindo custo de tokens e mantendo consistencia tecnica.
+## 1. Objetivo
+Centralizar contexto minimo obrigatorio para agentes e automacoes, reduzindo tokens por tarefa e preservando consistencia de decisoes tecnicas.
 
-## 2. Fontes de Verdade
-Prioridade de confiabilidade:
-1. Planilhas e arquivos de referencia LIGHT (Excel, xlsm, xlsx, documentos tecnicos e padroes construtivos).
-2. Casos reais de exemplo LIGHT (normal e clandestino).
-3. Regras tecnicas consolidadas nos projetos cqt_light, calculo_tracao_light e plugin_autocad.
-4. Decisoes registradas neste repositorio (ADR e documentos oficiais).
+## 2. Fontes de Verdade (ordem de prioridade)
+1. Planilhas e documentos de referencia da LIGHT (xlsx/xlsm/pdf).
+2. Casos reais de exemplo (normal e clandestino).
+3. Regras consolidadas nos legados cqt_light, calculo_tracao_light e plugin_autocad.
+4. Decisoes oficiais deste repositorio (ROADMAP, ARCHITECTURE, ADR).
 
-## 3. Regras Operacionais Fixas
-- Excel e fonte de verdade para comportamento de calculo.
+Regra:
+- Em caso de conflito, a planilha oficial prevalece.
+
+## 3. Regras Nao Negociaveis
+- Excel e fonte de verdade.
 - Nao usar dados mockados.
-- Usar 2.5D, nao 3D.
-- Aplicar DDD e separacao de responsabilidades.
-- Garantir modularidade e clean code.
-- Priorizar thin frontend e smart backend.
-- APIs externas somente gratuitas/publicas.
-- UI/UX em pt-BR.
-- Branch de trabalho: dev.
-- main somente para release estavel.
-- teste para validacoes paralelas e experimentos.
+- Somente 2.5D.
+- DDD + separacao de responsabilidades.
+- Thin frontend / smart backend.
+- APIs externas somente publicas ou gratuitas.
+- Interface e documentacao em pt-BR.
+- Trabalhar em dev.
+- main somente release.
+- teste para validacao parcial e experimentacao.
 
-## 4. Conhecimento de Dominio (Resumo)
-Fluxo operacional alvo:
-1. Receber levantamento e classificar tipo de trabalho.
-2. Executar CQT e validar centro de carga, transformador, recondu toramento, extensao e subdivisao.
-3. Tratar regra de clandestino e necessidade de leitura de trafo.
-4. Adquirir area em DXF, projetar no CAD com arruamento.
+## 4. Contexto de Negocio (resumo operacional)
+Fluxo alvo:
+1. Receber levantamento de campo.
+2. Classificar tipo de projeto.
+3. Executar CQT e regras complementares.
+4. Processar area de atuacao, geometria e DXF.
 5. Calcular tracao poste a poste.
-6. Gerar pacote ZIP para lista de material.
+6. Gerar pacote final (ZIP, PDF, Excel).
 
 Analise paralela obrigatoria:
-- Comparar levantamento, desenho, street view e fotos enviadas.
+- Comparar levantamento com desenho, street view e fotos.
 
-## 5. Politica de Paridade
+## 5. Politica de Paridade com Excel
 Modelo:
 - Paridade progressiva por modulo.
 
-Metodologia:
-- Definir golden cases por tipo de projeto.
-- Comparar outputs de calculo com tolerancia explicita.
-- Bloquear promocao de fase sem atingir criterio minimo.
+Processo:
+1. Selecionar golden cases por categoria.
+2. Fixar inputs e outputs esperados.
+3. Definir tolerancia numerica por campo.
+4. Versionar baseline de comparacao.
+5. Bloquear avanco de fase sem meta de paridade.
 
-## 6. Estrutura de Contexto para Agentes
-Ao iniciar uma task, agente deve:
-1. Ler este arquivo.
-2. Verificar documentos ROAMAP e ARCHITECTURE.
-3. Consultar pasta docs/adr para decisoes.
-4. Registrar novas decisoes e aprendizados validos.
+## 6. Estrategia de Economia de Tokens
+Ao iniciar qualquer tarefa, usar este checklist curto:
+1. Ler RAG/MEMORY.md.
+2. Ler somente secoes relevantes de ROADMAP.md e ARCHITECTURE.md.
+3. Consultar ADRs apenas se houver decisao relacionada.
+4. Evitar releitura integral de arquivos grandes sem necessidade.
+5. Registrar aprendizado em resumo objetivo (maximo 5 bullets).
 
-## 7. Registro de Decisoes Iniciais
-- Plataforma sera hibrida (Desktop + SaaS) desde o inicio.
-- Fase inicial sem login para acelerar desenvolvimento.
-- Login social Google/Microsoft e convidado leitura em fase de producao.
-- Integracao CAD tera referencia no projeto plugin_autocad.
-- Reuso de modulos CQT e Tracao dos projetos legados e obrigatorio.
+Padrao de resposta de agente:
+- Primeiro: decisao executiva em 1 a 3 linhas.
+- Segundo: somente contexto estritamente necessario.
+- Terceiro: proximas acoes objetivas.
 
-## 8. Atualizacao de Memoria
-Critrios para atualizar:
+## 7. Guardrails para Agentes
+- Nao inferir regra tecnica sem evidencia.
+- Nao alterar regra de calculo sem teste de regressao.
+- Nao introduzir dependencia paga.
+- Nao mover para main sem gate de qualidade.
+
+## 8. Estrutura de Memoria Recomendada
+Arquivos no RAG:
+- RAG/MEMORY.md: regras globais e contexto fixo.
+- RAG/golden-cases.md: lista de casos de validacao.
+- RAG/decisions-log.md: decisoes e impactos.
+- RAG/data-sources.md: mapeamento de fontes e confiabilidade.
+
+## 9. Registro de Decisoes Atuais
+- Plataforma hibrida (Desktop + SaaS) desde o inicio.
+- Fase inicial sem login para acelerar entrega.
+- Login social Google/Microsoft e convidado leitura para producao.
+- Integracao CAD orientada pelo plugin_autocad.
+- Reuso tecnico de CQT e tracao dos legados.
+
+## 10. Quando Atualizar Este Arquivo
+Atualizar quando houver:
 - Nova regra de negocio validada.
-- Mudanca de requisito operacional.
-- Descoberta de divergencia entre sistema e Excel.
-- Decisao arquitetural aprovada.
+- Mudanca de processo operacional.
+- Divergencia confirmada entre sistema e planilha.
+- Nova decisao arquitetural aprovada.
 
-Formato de registro:
+Formato de entrada de atualizacao:
 - Data
 - Contexto
 - Decisao
 - Impacto
-- Acoes decorrentes
+- Acao imediata
