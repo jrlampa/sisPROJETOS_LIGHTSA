@@ -3,6 +3,9 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+.npm/
+.pnpm-store/
 
 # Python
 __pycache__/
@@ -11,8 +14,10 @@ __pycache__/
 *.pyd
 .venv/
 venv/
+.python-version
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
 .coverage
 coverage.xml
 
@@ -21,6 +26,7 @@ dist/
 build/
 .cache/
 .vite/
+.turbo/
 
 # Env
 .env
@@ -32,6 +38,8 @@ build/
 .idea/
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
 
 # Logs and temp
 logs/
@@ -42,7 +50,13 @@ temp/
 # Test artifacts
 playwright-report/
 test-results/
+htmlcov/
 
 # Database local
 *.sqlite
 *.db
+
+# Desktop/electron
+*.asar
+out/
+release/

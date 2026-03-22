@@ -4,22 +4,32 @@
 
 # Node
 node_modules/
+.pnpm-store/
+.npm/
 
 # Python
 .venv/
 venv/
 __pycache__/
 *.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Build outputs
 dist/
 build/
+.turbo/
 
 # Local env and logs
 .env
 .env.*
 logs/
 *.log
+
+# Coverage and tests
+htmlcov/
+coverage.xml
 
 # Tests and reports
 playwright-report/
