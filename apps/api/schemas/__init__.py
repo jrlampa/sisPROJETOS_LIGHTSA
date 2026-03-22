@@ -1,5 +1,6 @@
 """DTOs de entrada e saida da API de projetos."""
 
+from .cad_schemas import ImportacaoDxfResponse, LayerSumarioDTO
 from .cqt_schemas import (
     CQTAnaliseRequest,
     CQTAnaliseResponse,
@@ -23,6 +24,8 @@ from .projeto_schemas import (
 )
 
 __all__ = [
+    "ImportacaoDxfResponse",
+    "LayerSumarioDTO",
     "CQTAnaliseRequest",
     "CQTAnaliseResponse",
     "CentroCargaDTO",

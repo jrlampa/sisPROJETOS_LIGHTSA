@@ -67,11 +67,13 @@ class EzdxfAdapter:
     pois sao invalidos para o dominio 2.5D.
     """
 
-    def ler_dxf(self, caminho_arquivo: str) -> ArquivoDXF:
+    def ler_dxf(self, caminho_arquivo: str, nome_arquivo: str | None = None) -> ArquivoDXF:
         """Le um ficheiro DXF do disco e retorna as geometrias como ArquivoDXF.
 
         Args:
             caminho_arquivo: Caminho absoluto ou relativo para o ficheiro .dxf.
+            nome_arquivo: Nome lógico a usar no ArquivoDXF (ex.: nome original do
+                upload). Quando omitido, usa o basename do caminho físico.
 
         Returns:
             ArquivoDXF com as geometrias agrupadas por layer tecnica.
@@ -115,8 +117,8 @@ class EzdxfAdapter:
             )
             geometrias.append(geometria)
 
-        nome_arquivo = Path(caminho_arquivo).name
+        nome_final = nome_arquivo or Path(caminho_arquivo).name
         return ArquivoDXF(
-            nome_arquivo=nome_arquivo,
+            nome_arquivo=nome_final,
             geometrias=tuple(geometrias),
         )

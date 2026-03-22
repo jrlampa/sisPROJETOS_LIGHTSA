@@ -35,12 +35,19 @@ class ImportarArquivoDxfUseCase:
         self._adapter = adapter
         self._repository = repository
 
-    def executar(self, projeto_id: UUID, caminho_arquivo: str) -> ArquivoDXF:
+    def executar(
+        self,
+        projeto_id: UUID,
+        caminho_arquivo: str,
+        nome_arquivo: str | None = None,
+    ) -> ArquivoDXF:
         """Importa o DXF e persiste a geometria associada ao projeto.
 
         Args:
             projeto_id: UUID do projeto ao qual a geometria sera vinculada.
             caminho_arquivo: Caminho absoluto ou relativo para o ficheiro .dxf.
+            nome_arquivo: Nome lógico a preservar no registro (ex.: nome original
+                do upload). Quando None, usa o basename do caminho físico.
 
         Returns:
             ArquivoDXF com todas as geometrias extraidas.
@@ -50,7 +57,7 @@ class ImportarArquivoDxfUseCase:
             FileNotFoundError: Se o ficheiro DXF nao for encontrado no disco.
         """
         adapter = self._adapter or EzdxfAdapter()
-        arquivo_dxf: ArquivoDXF = adapter.ler_dxf(caminho_arquivo)
+        arquivo_dxf: ArquivoDXF = adapter.ler_dxf(caminho_arquivo, nome_arquivo=nome_arquivo)
 
         with self._session_factory() as session:
             repository = self._repository or CADRepository(session)
