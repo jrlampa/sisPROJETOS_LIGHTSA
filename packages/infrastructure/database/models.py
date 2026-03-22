@@ -29,6 +29,9 @@ class ProjetoORM(Base):
     cqt_analises: Mapped[list["CQTAnaliseORM"]] = relationship(
         back_populates="projeto", cascade="all, delete-orphan"
     )
+    geometria_cad: Mapped["GeometriaProjetoORM | None"] = relationship(
+        back_populates="projeto", uselist=False, cascade="all, delete-orphan"
+    )
 
 
 class HistoricoAuditoriaORM(Base):
@@ -159,3 +162,25 @@ class TrechoEletricoORM(Base):
 
     centro_carga: Mapped[CentroCargaORM] = relationship(back_populates="trechos")
     condutor: Mapped[CondutorORM] = relationship(back_populates="trechos")
+
+
+class GeometriaProjetoORM(Base):
+    """Persistencia da geometria CAD 2.5D extraida de um ficheiro DXF.
+
+    As coordenadas dos segmentos sao compactadas numa coluna JSON para evitar a
+    criacao de milhares de registros relacionais de pontos, mantendo a performance
+    de leitura/escrita sem sacrificar a rastreabilidade por projeto.
+    """
+
+    __tablename__ = "geometrias_projeto"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    projeto_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projetos.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
+    nome_arquivo: Mapped[str] = mapped_column(String(260), nullable=False)
+    versao_dxf: Mapped[str] = mapped_column(String(20), nullable=False)
+    dados_geometria: Mapped[list] = mapped_column(JSON, nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    projeto: Mapped[ProjetoORM] = relationship(back_populates="geometria_cad")
