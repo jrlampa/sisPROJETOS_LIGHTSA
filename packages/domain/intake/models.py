@@ -8,6 +8,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
+from packages.domain.workflow.models import EtapaProjeto
+
 
 def utc_now() -> datetime:
     """Retorna data e hora em UTC para padronizar eventos de dominio."""
@@ -137,6 +139,7 @@ class Projeto(BaseModel):
     codigo: str = Field(min_length=3, max_length=100)
     nome: str = Field(min_length=3, max_length=200)
     localidade: str = Field(min_length=3, max_length=200)
+    etapa_atual: EtapaProjeto = EtapaProjeto.TRIAGEM
     checklist_triagem: ChecklistTriagem
     evidencias: tuple[Evidencia, ...] = Field(default_factory=tuple)
     criado_em: datetime = Field(default_factory=utc_now)

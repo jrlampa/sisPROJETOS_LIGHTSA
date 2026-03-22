@@ -32,13 +32,13 @@ npm run dev
 ```bash
 cd apps/api
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn main:app --reload --port 8000
 ```
 
-## Como rodar testes de dominio
+## Como rodar testes de dominio e integracao
 ```bash
 pip install -r requirements-dev.txt
-python -m pytest packages/domain/tests -q
+python -m pytest packages/domain/tests packages/application/tests -q
 ```
 
 ## Regras de Branch
