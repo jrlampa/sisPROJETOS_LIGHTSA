@@ -1,12 +1,20 @@
 const CAMPOS_COM_DADOS = ["tipoCabo", "vao", "flecha", "angulo", "qtdCabos", "qtdLigacoes"];
 
+export function sanitizeString(str) {
+  return String(str ?? "")
+    .trim()
+    .replace(/<[^>]*>?/gm, "");
+}
+
 export function toNumberOr(defaultValue, value) {
-  const number = Number(value);
+  const sanitized = sanitizeString(value).replace(/,/g, ".");
+  const normalized = sanitized.replace(/[^0-9+\-.]/g, "");
+  const number = Number(normalized);
   return Number.isFinite(number) ? number : defaultValue;
 }
 
 function temDadosTravessia(travessia) {
-  return CAMPOS_COM_DADOS.some((key) => String(travessia[key] || "").trim() !== "");
+  return CAMPOS_COM_DADOS.some((key) => sanitizeString(travessia[key]) !== "");
 }
 
 export function secaoToPayload(sectionKey, travessias, resistenciaNominal) {
@@ -19,7 +27,7 @@ export function secaoToPayload(sectionKey, travessias, resistenciaNominal) {
       vaos: [
         {
           comprimento_m: toNumberOr(10, travessia.vao),
-          tipo_cabo: travessia.tipoCabo || "CAA 70mm2",
+          tipo_cabo: sanitizeString(travessia.tipoCabo) || "CAA 70mm2",
           tracao_daN: toNumberOr(100, travessia.flecha || travessia.qtdCabos || travessia.qtdLigacoes),
           azimute_graus: toNumberOr(0, travessia.angulo) % 360,
         },

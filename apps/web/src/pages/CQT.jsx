@@ -15,6 +15,29 @@ const LINHA_BASE = {
   fases: 3,
 };
 
+function sanitizeString(str) {
+  return String(str ?? "")
+    .trim()
+    .replace(/<[^>]*>?/gm, "");
+}
+
+function toNumberOr(defaultValue, value) {
+  const sanitized = sanitizeString(value).replace(/,/g, ".");
+  const normalized = sanitized.replace(/[^0-9+\-.]/g, "");
+  const number = Number(normalized);
+  return Number.isFinite(number) ? number : defaultValue;
+}
+
+function sanitizeLinhaTrecho(linha) {
+  return {
+    ...linha,
+    comprimento_m: toNumberOr(LINHA_BASE.comprimento_m, linha.comprimento_m),
+    corrente_a: toNumberOr(LINHA_BASE.corrente_a, linha.corrente_a),
+    fases: toNumberOr(LINHA_BASE.fases, linha.fases),
+    tipo_cabo: sanitizeString(linha.tipo_cabo) || LINHA_BASE.tipo_cabo,
+  };
+}
+
 function criarLinhaInicial(id = 1) {
   return {
     id,
@@ -56,7 +79,7 @@ export function CQT() {
         throw new Error("Projeto ativo nao encontrado.");
       }
 
-      const payload = montarPayloadCqt(linhasTrecho);
+      const payload = montarPayloadCqt(linhasTrecho.map(sanitizeLinhaTrecho));
 
       const response = await api.post(`/projetos/${projetoId}/cqt`, payload);
       return response.data;

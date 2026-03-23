@@ -2,38 +2,16 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
+from packages.application.dtos.tracao import (
+    CalcularTracaoRequestDTO,
+    PosteBrutoDTO,
+    VaoDTO,
+)
 from packages.domain.tracao.models import ResultadoTracao
 
-
-class VaoDTO(BaseModel):
-    """DTO de entrada para vao de tracao."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    comprimento_m: float = Field(gt=0)
-    tipo_cabo: str = Field(min_length=2, max_length=100)
-    tracao_daN: float = Field(gt=0)
-    azimute_graus: float = Field(ge=0, lt=360)
-
-
-class PosteBrutoDTO(BaseModel):
-    """DTO de entrada de poste com resistencia nominal e lista de vaos."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    codigo: str = Field(min_length=2, max_length=50)
-    resistencia_nominal_daN: float = Field(gt=0)
-    vaos: list[VaoDTO] = Field(default_factory=list)
-
-
-class CalcularTracaoRequest(BaseModel):
-    """Payload de requisicao para calcular tracao de todos os postes do projeto."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    postes: list[PosteBrutoDTO] = Field(min_length=1)
+CalcularTracaoRequest = CalcularTracaoRequestDTO
 
 
 class ResultadoTracaoDTO(BaseModel):
@@ -62,3 +40,12 @@ class CalcularTracaoResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     resultados: list[ResultadoTracaoDTO]
+
+
+__all__ = [
+    "VaoDTO",
+    "PosteBrutoDTO",
+    "CalcularTracaoRequest",
+    "ResultadoTracaoDTO",
+    "CalcularTracaoResponse",
+]
