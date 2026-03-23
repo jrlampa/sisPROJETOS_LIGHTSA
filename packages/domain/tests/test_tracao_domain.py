@@ -7,7 +7,14 @@ import math
 import pytest
 from pydantic import ValidationError
 
-from packages.domain.tracao.models import EstadoMecanico, Poste, ResultadoTracao, Vao
+from packages.domain.tracao.models import (
+    EstadoMecanico,
+    NivelTracao,
+    Poste,
+    ResultadoTracao,
+    TraversalFisica,
+    Vao,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -238,3 +245,178 @@ def test_poste_e_imutavel() -> None:
     )
     with pytest.raises(Exception):
         poste.codigo = "PE-MOD"  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# Motor Fisico — Cosmo LDA (valores de ouro confirmados no workbook LIGHT)
+# ---------------------------------------------------------------------------
+#
+# Poste Cosmo LDA / 11 m 600 daN — configuracao real documentada em
+# docs/LEGACY_ANALYSIS_TRACAO.md.  Resultados esperados (workbook Excel):
+#   MT1 = 217.37 daN @ 177°  |  MT2 = 171.33 daN @ 90°
+#   BT  = 165.39 daN @  60°  |  TOTAL = 373.67 daN @ 112°  ECC = 20.09 daN
+# ---------------------------------------------------------------------------
+
+
+def _cosmo_lda_traversals() -> tuple[TraversalFisica, ...]:
+    """Devolve as traversals fisicas do poste Cosmo LDA (caso de ouro)."""
+    return (
+        # MT1 — T1
+        TraversalFisica(
+            nivel=NivelTracao.MT1,
+            posicao=1,
+            tipo_rede="Convencional",
+            tipo_cabo="397MCM-CA, Nu",
+            vao_m=33.0,
+            flecha_m=0.5,
+            angulo_graus=0.0,
+            altura_poste_m=11.0,
+            altura_ancoragem_m=9.2,
+        ),
+        # MT1 — T2
+        TraversalFisica(
+            nivel=NivelTracao.MT1,
+            posicao=2,
+            tipo_rede="Convencional",
+            tipo_cabo="397MCM-CA, Nu",
+            vao_m=40.0,
+            flecha_m=0.5,
+            angulo_graus=179.0,
+            altura_poste_m=11.0,
+            altura_ancoragem_m=9.2,
+        ),
+        # MT2 — T1
+        TraversalFisica(
+            nivel=NivelTracao.MT2,
+            posicao=1,
+            tipo_rede="Compacta",
+            tipo_cabo="397MCM-CA, XLPE, 13,8 kV",
+            vao_m=27.0,
+            flecha_m=0.5,
+            angulo_graus=11.0,
+            altura_poste_m=11.0,
+            altura_ancoragem_m=8.2,
+        ),
+        # MT2 — T2
+        TraversalFisica(
+            nivel=NivelTracao.MT2,
+            posicao=2,
+            tipo_rede="Compacta",
+            tipo_cabo="397MCM-CA, XLPE, 13,8 kV",
+            vao_m=27.0,
+            flecha_m=0.5,
+            angulo_graus=169.0,
+            altura_poste_m=11.0,
+            altura_ancoragem_m=8.2,
+        ),
+        # BT — T1 (geometria herdada do MT1 T1)
+        TraversalFisica(
+            nivel=NivelTracao.BT,
+            posicao=1,
+            tipo_rede="Multiplexada",
+            tipo_cabo="70mm\u00b2, MTX-BT ",
+            altura_ancoragem_m=7.0,
+        ),
+        # BT — T2 (geometria herdada do MT1 T2)
+        TraversalFisica(
+            nivel=NivelTracao.BT,
+            posicao=2,
+            tipo_rede="Multiplexada",
+            tipo_cabo="70mm\u00b2, MTX-BT ",
+            altura_ancoragem_m=7.0,
+        ),
+        # BT — T3 (vao independente)
+        TraversalFisica(
+            nivel=NivelTracao.BT,
+            posicao=3,
+            tipo_rede="Multiplexada",
+            tipo_cabo="70mm\u00b2, MTX-BT ",
+            vao_m=20.0,
+            flecha_m=0.5,
+            angulo_graus=85.0,
+            altura_poste_m=11.0,
+            altura_ancoragem_m=7.0,
+        ),
+    )
+
+
+def test_motor_fisico_cosmo_lda_total_tracao() -> None:
+    """Motor fisico deve reproduzir o valor de ouro do workbook: 373.67 daN."""
+    poste = Poste(
+        codigo="COSMO-LDA",
+        resistencia_nominal_daN=600.0,
+        traversals_fisicas=_cosmo_lda_traversals(),
+        tipo_poste="Concreto circular",
+        modelo_poste="11 m / 600 daN",
+    )
+
+    assert poste.esforco_resultante_daN == pytest.approx(373.67, abs=0.5)
+
+
+def test_motor_fisico_cosmo_lda_estado_aprovado() -> None:
+    """373.67 / 600 = 62.3 % -> estado APROVADO (abaixo de 80%)."""
+    poste = Poste(
+        codigo="COSMO-LDA",
+        resistencia_nominal_daN=600.0,
+        traversals_fisicas=_cosmo_lda_traversals(),
+        tipo_poste="Concreto circular",
+        modelo_poste="11 m / 600 daN",
+    )
+
+    assert poste.estado_mecanico is EstadoMecanico.APROVADO
+
+
+def test_motor_fisico_resultado_tracao_agrega_motor_legado() -> None:
+    """ResultadoTracao.calcular() deve funcionar quando alimentado pelo motor fisico."""
+    poste = Poste(
+        codigo="COSMO-LDA",
+        resistencia_nominal_daN=600.0,
+        traversals_fisicas=_cosmo_lda_traversals(),
+        tipo_poste="Concreto circular",
+        modelo_poste="11 m / 600 daN",
+    )
+
+    resultado = ResultadoTracao.calcular(poste)
+
+    assert resultado.esforco_resultante_daN == pytest.approx(373.67, abs=0.5)
+    assert resultado.estado_mecanico is EstadoMecanico.APROVADO
+
+
+def test_motor_fisico_poste_sem_traversals_usa_fallback() -> None:
+    """Poste sem traversals_fisicas deve continuar usando a soma vetorial simples."""
+    poste = Poste(
+        codigo="PE-FALLBACK",
+        resistencia_nominal_daN=300.0,
+        vaos=(_vao(tracao_daN=200.0, azimute_graus=0.0),),
+    )
+
+    assert poste.esforco_resultante_daN == pytest.approx(200.0, rel=1e-6)
+
+
+def test_motor_fisico_traversal_sem_vao_requer_apenas_ancoragem() -> None:
+    """TraversalFisica sem vao_m e valida; vao_m fica em 0.0 (geometria herdada de MT1)."""
+    t = TraversalFisica(
+        nivel=NivelTracao.BT,
+        posicao=1,
+        tipo_rede="Multiplexada",
+        tipo_cabo="70mm\u00b2, MTX-BT ",
+        altura_ancoragem_m=7.0,
+    )
+    assert t.vao_m == 0.0   # sentinela: geometria herdada do nivel MT1
+    assert t.flecha_m == 0.0
+
+
+def test_motor_fisico_traversal_com_vao_exige_flecha() -> None:
+    """TraversalFisica com vao_m deve exigir flecha_m."""
+    with pytest.raises(ValidationError):
+        TraversalFisica(
+            nivel=NivelTracao.BT,
+            posicao=1,
+            tipo_rede="Multiplexada",
+            tipo_cabo="70mm\u00b2, MTX-BT ",
+            vao_m=20.0,
+            # flecha_m ausente — deve reprovar
+            angulo_graus=85.0,
+            altura_poste_m=11.0,
+            altura_ancoragem_m=7.0,
+        )
