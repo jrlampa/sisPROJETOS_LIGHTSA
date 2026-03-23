@@ -20,7 +20,6 @@ from apps.api.routers.exportacao import router as exportacao_router
 from apps.api.routers.health import router as health_router
 from apps.api.routers.projetos import router as projetos_router
 from apps.api.routers.tracao import router as tracao_router
-from packages.infrastructure.database.models import Base
 from packages.infrastructure.database.session import build_engine, create_session_factory
 
 
@@ -69,7 +68,8 @@ def create_app(database_url: str | None = None) -> FastAPI:
     )
 
     engine = build_engine(resolved_database_url)
-    Base.metadata.create_all(bind=engine)
+    # O esquema passa a ser gerido exclusivamente por migracoes Alembic.
+    # Base.metadata.create_all(bind=engine)
     app.state.session_factory = create_session_factory(resolved_database_url, engine=engine)
 
     app.include_router(auth_router)
