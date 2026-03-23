@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Calculator, PlusCircle } from "lucide-react";
 
 import { montarPayloadCqt } from "../adapters/cqtAdapter";
+import { LegacyExcelHeader } from "../components/cqt/LegacyExcelHeader";
 import api from "../lib/api";
 import { useGridStore } from "../store/useGridStore";
 import { useProjectStore } from "../store/useProjectStore";
@@ -41,37 +42,133 @@ function sanitizeLinhaTrecho(linha) {
 function criarLinhaInicial(id = 1) {
   return {
     id,
+    queda_tensao_trecho: "",
+    queda_tensao_acumulada: "",
+    fim_linha: "Nao",
+    resistencia_equivalente: "",
+    reatancia_equivalente: "",
+    produto_ir: "",
+    produto_ix: "",
     ...LINHA_BASE,
+  };
+}
+
+function criarCabecalhoInicial(projetoAtivo) {
+  const hoje = new Date();
+  const data = `${String(hoje.getDate()).padStart(2, "0")}/${String(hoje.getMonth() + 1).padStart(2, "0")}/${hoje.getFullYear()}`;
+  return {
+    nomeProjeto: projetoAtivo?.nome || "",
+    projetista: "",
+    data,
+    localidade: projetoAtivo?.localidade || "",
+    condutores: LINHA_BASE.tipo_cabo,
+    demanda: String(LINHA_BASE.corrente_a),
+    trafoKva: "112.5",
+    tensao: "13800",
+    fatorPotencia: "0.92",
+    observacoes: "",
+  };
+}
+
+function criarEstadoVisualInicial(projetoAtivo) {
+  const cabecalho = criarCabecalhoInicial(projetoAtivo);
+  return {
+    esquerdo: {
+      cabecalho: { ...cabecalho },
+      trechos: [criarLinhaInicial(1)],
+    },
+    direito: {
+      cabecalho: { ...cabecalho },
+      trechos: [criarLinhaInicial(1)],
+    },
+  };
+}
+
+function normalizarEstadoVisual(estadoBruto, projetoAtivo) {
+  if (!estadoBruto || typeof estadoBruto !== "object") {
+    return criarEstadoVisualInicial(projetoAtivo);
+  }
+
+  if (Array.isArray(estadoBruto)) {
+    const inicial = criarEstadoVisualInicial(projetoAtivo);
+    return {
+      esquerdo: { ...inicial.esquerdo, trechos: estadoBruto.length ? estadoBruto : [criarLinhaInicial(1)] },
+      direito: { ...inicial.direito, trechos: [criarLinhaInicial(1)] },
+    };
+  }
+
+  const inicial = criarEstadoVisualInicial(projetoAtivo);
+  const esquerdoTrechos = Array.isArray(estadoBruto?.esquerdo?.trechos) ? estadoBruto.esquerdo.trechos : inicial.esquerdo.trechos;
+  const direitoTrechos = Array.isArray(estadoBruto?.direito?.trechos) ? estadoBruto.direito.trechos : inicial.direito.trechos;
+
+  return {
+    esquerdo: {
+      cabecalho: { ...inicial.esquerdo.cabecalho, ...(estadoBruto?.esquerdo?.cabecalho || {}) },
+      trechos: esquerdoTrechos.length ? esquerdoTrechos : [criarLinhaInicial(1)],
+    },
+    direito: {
+      cabecalho: { ...inicial.direito.cabecalho, ...(estadoBruto?.direito?.cabecalho || {}) },
+      trechos: direitoTrechos.length ? direitoTrechos : [criarLinhaInicial(1)],
+    },
   };
 }
 
 export function CQT() {
   const { projetoAtivo } = useProjectStore();
   const { obterLinhasCqt, salvarLinhasCqt } = useGridStore();
-  const [linhasTrecho, setLinhasTrecho] = useState([criarLinhaInicial()]);
-  const [fatorPotencia, setFatorPotencia] = useState("0.92");
+  const [abaAtiva, setAbaAtiva] = useState("esquerdo");
+  const [estadoVisual, setEstadoVisual] = useState(() => criarEstadoVisualInicial(projetoAtivo));
 
   const projetoId = projetoAtivo?.id || null;
 
   useEffect(() => {
     if (!projetoId) return;
-    const linhasSalvas = obterLinhasCqt(projetoId, criarLinhaInicial);
-    setLinhasTrecho(linhasSalvas);
-  }, [obterLinhasCqt, projetoId]);
+    const estadoSalvo = obterLinhasCqt(projetoId, () => criarEstadoVisualInicial(projetoAtivo));
+    setEstadoVisual(normalizarEstadoVisual(estadoSalvo, projetoAtivo));
+  }, [obterLinhasCqt, projetoAtivo, projetoId]);
 
   useEffect(() => {
     if (!projetoId) return;
-    salvarLinhasCqt(projetoId, linhasTrecho);
-  }, [linhasTrecho, projetoId, salvarLinhasCqt]);
+    salvarLinhasCqt(projetoId, estadoVisual);
+  }, [estadoVisual, projetoId, salvarLinhasCqt]);
+
+  const ladoAtivo = estadoVisual[abaAtiva];
+  const trechosAtivos = ladoAtivo.trechos;
 
   const adicionarLinha = () => {
-    setLinhasTrecho((atual) => [...atual, criarLinhaInicial(atual.length + 1)]);
+    setEstadoVisual((atual) => {
+      const atuais = atual[abaAtiva].trechos;
+      return {
+        ...atual,
+        [abaAtiva]: {
+          ...atual[abaAtiva],
+          trechos: [...atuais, criarLinhaInicial(atuais.length + 1)],
+        },
+      };
+    });
   };
 
   const atualizarLinha = (id, campo, valor) => {
-    setLinhasTrecho((atual) =>
-      atual.map((linha) => (linha.id === id ? { ...linha, [campo]: valor } : linha))
-    );
+    setEstadoVisual((atual) => ({
+      ...atual,
+      [abaAtiva]: {
+        ...atual[abaAtiva],
+        trechos: atual[abaAtiva].trechos.map((linha) => (linha.id === id ? { ...linha, [campo]: valor } : linha)),
+      },
+    }));
+  };
+
+  const atualizarCabecalho = (campo, valor) => {
+    setEstadoVisual((atual) => ({
+      ...atual,
+      [abaAtiva]: {
+        ...atual[abaAtiva],
+        cabecalho: {
+          ...atual[abaAtiva].cabecalho,
+          [campo]: valor,
+        },
+      },
+    }));
   };
 
   const mutation = useMutation({
@@ -80,7 +177,7 @@ export function CQT() {
         throw new Error("Projeto ativo nao encontrado.");
       }
 
-      const payload = montarPayloadCqt(linhasTrecho.map(sanitizeLinhaTrecho));
+      const payload = montarPayloadCqt(trechosAtivos.map(sanitizeLinhaTrecho));
 
       const response = await api.post(`/projetos/${projetoId}/cqt`, payload);
       return response.data;
@@ -89,8 +186,8 @@ export function CQT() {
 
   const totalQueda = useMemo(() => mutation.data?.centro_carga?.queda_total_percent, [mutation.data]);
   const totalEsforcos = useMemo(
-    () => linhasTrecho.reduce((acc, linha) => acc + toNumberOr(0, linha.corrente_a), 0),
-    [linhasTrecho]
+    () => trechosAtivos.reduce((acc, linha) => acc + toNumberOr(0, linha.corrente_a), 0),
+    [trechosAtivos]
   );
 
   if (!projetoId) {
@@ -103,6 +200,23 @@ export function CQT() {
 
   return (
     <section className="excel-container">
+      <div className="excel-tabs">
+        <button
+          type="button"
+          className={`excel-tab ${abaAtiva === "esquerdo" ? "excel-tab-active" : ""}`}
+          onClick={() => setAbaAtiva("esquerdo")}
+        >
+          CÁLCULO - LADO ESQUERDO
+        </button>
+        <button
+          type="button"
+          className={`excel-tab ${abaAtiva === "direito" ? "excel-tab-active" : ""}`}
+          onClick={() => setAbaAtiva("direito")}
+        >
+          CÁLCULO - LADO DIREITO
+        </button>
+      </div>
+
       <table className="excel-table">
         <tbody>
           <tr>
@@ -113,59 +227,11 @@ export function CQT() {
         </tbody>
       </table>
 
-      <table className="excel-table">
-        <thead>
-          <tr>
-            <th className="excel-th-dark" colSpan={4}>
-              DADOS DO PROJETO
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th className="excel-th-light">Nome do Projeto</th>
-            <td className="excel-td">
-              <input className="excel-input" value={projetoAtivo?.nome || ""} readOnly />
-            </td>
-            <th className="excel-th-light">Localidade</th>
-            <td className="excel-td">
-              <input className="excel-input" value={projetoAtivo?.localidade || ""} readOnly />
-            </td>
-          </tr>
-          <tr>
-            <th className="excel-th-light">Condutores</th>
-            <td className="excel-td">
-              <input
-                className="excel-input"
-                value={linhasTrecho[0]?.tipo_cabo ?? ""}
-                onChange={(e) => atualizarLinha(linhasTrecho[0]?.id, "tipo_cabo", e.target.value)}
-              />
-            </td>
-            <th className="excel-th-light">Demanda</th>
-            <td className="excel-td">
-              <input
-                className="excel-input"
-                value={linhasTrecho[0]?.corrente_a ?? ""}
-                onChange={(e) => atualizarLinha(linhasTrecho[0]?.id, "corrente_a", e.target.value)}
-              />
-            </td>
-          </tr>
-          <tr>
-            <th className="excel-th-light">Fases</th>
-            <td className="excel-td">
-              <input
-                className="excel-input"
-                value={linhasTrecho[0]?.fases ?? ""}
-                onChange={(e) => atualizarLinha(linhasTrecho[0]?.id, "fases", e.target.value)}
-              />
-            </td>
-            <th className="excel-th-light">Trechos</th>
-            <td className="excel-td">
-              <input className="excel-input" value={linhasTrecho.length} readOnly />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <LegacyExcelHeader
+        dadosCabecalho={ladoAtivo.cabecalho}
+        onChangeCampo={atualizarCabecalho}
+        tituloAba={abaAtiva === "esquerdo" ? "CÁLCULO - LADO ESQUERDO" : "CÁLCULO - LADO DIREITO"}
+      />
 
       <div className="excel-actions">
         <button type="button" className="btn-secondary" onClick={adicionarLinha}>
@@ -181,13 +247,20 @@ export function CQT() {
       <table className="excel-table">
         <thead>
           <tr>
-            <th className="excel-th-dark" colSpan={6}>
+            <th className="excel-th-dark" colSpan={13}>
               Ponto a Ponto - Esforço e Queda de Tensão
             </th>
           </tr>
           <tr>
             <th className="excel-th-light">Trecho</th>
             <th className="excel-th-light">Comp. (m)</th>
+            <th className="excel-th-light">Corrente (A)</th>
+            <th className="excel-th-light">Tipo Cabo</th>
+            <th className="excel-th-light">Fases</th>
+            <th className="excel-th-light">R eq (Ω)</th>
+            <th className="excel-th-light">X eq (Ω)</th>
+            <th className="excel-th-light">I x R</th>
+            <th className="excel-th-light">I x X</th>
             <th className="excel-th-light">Esforços Tração (daN)</th>
             <th className="excel-th-light">Queda Tensão Trecho (%)</th>
             <th className="excel-th-light">Queda Tensão Acum. (%)</th>
@@ -195,7 +268,7 @@ export function CQT() {
           </tr>
         </thead>
         <tbody>
-          {linhasTrecho.map((linha, idx) => (
+          {trechosAtivos.map((linha, idx) => (
             <tr key={linha.id}>
               <td className="excel-td" style={{ textAlign: "center", fontWeight: 700 }}>{`T${idx + 1}`}</td>
               <td className="excel-td">
@@ -210,6 +283,43 @@ export function CQT() {
                   className="excel-input"
                   value={linha.corrente_a}
                   onChange={(e) => atualizarLinha(linha.id, "corrente_a", e.target.value)}
+                />
+              </td>
+              <td className="excel-td">
+                <input
+                  className="excel-input"
+                  value={linha.tipo_cabo}
+                  onChange={(e) => atualizarLinha(linha.id, "tipo_cabo", e.target.value)}
+                />
+              </td>
+              <td className="excel-td">
+                <input className="excel-input" value={linha.fases} onChange={(e) => atualizarLinha(linha.id, "fases", e.target.value)} />
+              </td>
+              <td className="excel-td">
+                <input
+                  className="excel-input"
+                  value={linha.resistencia_equivalente ?? ""}
+                  onChange={(e) => atualizarLinha(linha.id, "resistencia_equivalente", e.target.value)}
+                />
+              </td>
+              <td className="excel-td">
+                <input
+                  className="excel-input"
+                  value={linha.reatancia_equivalente ?? ""}
+                  onChange={(e) => atualizarLinha(linha.id, "reatancia_equivalente", e.target.value)}
+                />
+              </td>
+              <td className="excel-td">
+                <input className="excel-input" value={linha.produto_ir ?? ""} onChange={(e) => atualizarLinha(linha.id, "produto_ir", e.target.value)} />
+              </td>
+              <td className="excel-td">
+                <input className="excel-input" value={linha.produto_ix ?? ""} onChange={(e) => atualizarLinha(linha.id, "produto_ix", e.target.value)} />
+              </td>
+              <td className="excel-td">
+                <input
+                  className="excel-input"
+                  value={linha.esforco_tracao ?? linha.corrente_a}
+                  onChange={(e) => atualizarLinha(linha.id, "esforco_tracao", e.target.value)}
                 />
               </td>
               <td className="excel-td">
@@ -243,7 +353,7 @@ export function CQT() {
       <table className="excel-table" style={{ maxWidth: "560px" }}>
         <thead>
           <tr>
-            <th className="excel-th-dark" colSpan={2}>
+            <th className="excel-th-dark" colSpan={4}>
               RESUMO DOS ESFORÇOS MECÂNICOS
             </th>
           </tr>
@@ -254,17 +364,45 @@ export function CQT() {
             <td className="excel-td">
               <input className="excel-input" value={totalEsforcos.toFixed(2)} readOnly />
             </td>
+            <th className="excel-th-light">Fator de Potência</th>
+            <td className="excel-td">
+              <input
+                className="excel-input"
+                value={ladoAtivo.cabecalho.fatorPotencia}
+                onChange={(e) => atualizarCabecalho("fatorPotencia", e.target.value)}
+              />
+            </td>
           </tr>
           <tr>
             <th className="excel-th-light">Queda Tensão Acumulada (%)</th>
             <td className="excel-td">
               <input className="excel-input" value={typeof totalQueda === "number" ? totalQueda.toFixed(3) : "N/A"} readOnly />
             </td>
+            <th className="excel-th-light">Status Trafo</th>
+            <td className="excel-td">
+              <input
+                className="excel-input"
+                value={mutation.data?.trafo_dentro_do_limite ? "Dentro do limite" : "Aguardando cálculo"}
+                readOnly
+              />
+            </td>
           </tr>
           <tr>
-            <th className="excel-th-light">Fator de Potência</th>
+            <th className="excel-th-light">QDT Total no Limite</th>
             <td className="excel-td">
-              <input className="excel-input" value={fatorPotencia} onChange={(e) => setFatorPotencia(e.target.value)} />
+              <input
+                className="excel-input"
+                value={mutation.data?.qdt_total_dentro_do_limite ? "Sim" : "Aguardando cálculo"}
+                readOnly
+              />
+            </td>
+            <th className="excel-th-light">Observações</th>
+            <td className="excel-td">
+              <input
+                className="excel-input"
+                value={ladoAtivo.cabecalho.observacoes}
+                onChange={(e) => atualizarCabecalho("observacoes", e.target.value)}
+              />
             </td>
           </tr>
         </tbody>

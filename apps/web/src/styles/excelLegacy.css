@@ -230,6 +230,28 @@ body {
   padding: 0;
 }
 
+.excel-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.excel-tab {
+  border: 1px solid #8ea9db;
+  background: #d9e1f2;
+  color: #000;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.excel-tab-active {
+  background: #305496;
+  color: #fff;
+}
+
 .excel-table {
   border-collapse: collapse;
   width: 100%;
@@ -260,6 +282,7 @@ body {
   border: 1px solid #b2b2b2;
   padding: 2px 4px;
   vertical-align: middle;
+  overflow: hidden;
 }
 
 .excel-input {
@@ -269,7 +292,11 @@ body {
   background: transparent;
   font-family: inherit;
   font-size: inherit;
+  line-height: 1.1;
   box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  text-align: left;
 }
 
 .excel-input:focus,
