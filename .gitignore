@@ -23,7 +23,9 @@ coverage.xml
 
 # Build and cache
 dist/
+dist_desktop/
 build/
+build_pyinstaller/
 .cache/
 .vite/
 .turbo/
@@ -61,6 +63,7 @@ htmlcov/
 out/
 release/
 *.spec
+Output/
 
 # CAD temporary files at repository root
 /*.dxf
