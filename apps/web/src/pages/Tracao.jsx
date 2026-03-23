@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
+import {
+  mapResultadosPorSecao,
+  montarIndexMapTracao,
+  montarPostesTracao,
+  resumirResultadosTracao,
+  toNumberOr,
+} from "../adapters/tracaoAdapter";
 import { LegacyDiagramaPoste } from "../components/tracao/LegacyDiagramaPoste";
 import { LegacySecaoNivel } from "../components/tracao/LegacySecaoNivel";
 import { LegacyTabelaCarga } from "../components/tracao/LegacyTabelaCarga";
@@ -49,41 +56,6 @@ function criarEstadoInicial() {
   };
 }
 
-function toNumberOr(defaultValue, value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : defaultValue;
-}
-
-function secaoToPayload(sectionKey, travessias, resistenciaNominal) {
-  return travessias
-    .map((travessia, idx) => ({ travessia, idx }))
-    .filter(({ travessia }) =>
-      ["tipoCabo", "vao", "flecha", "angulo", "qtdCabos", "qtdLigacoes"].some((key) => String(travessia[key] || "").trim() !== "")
-    )
-    .map(({ travessia, idx }) => ({
-      codigo: `${sectionKey.toUpperCase()}-T${idx + 1}`,
-      resistencia_nominal_daN: resistenciaNominal,
-      vaos: [
-        {
-          comprimento_m: toNumberOr(10, travessia.vao),
-          tipo_cabo: travessia.tipoCabo || "CAA 70mm2",
-          tracao_daN: toNumberOr(100, travessia.flecha || travessia.qtdCabos || travessia.qtdLigacoes),
-          azimute_graus: toNumberOr(0, travessia.angulo) % 360,
-        },
-      ],
-    }));
-}
-
-function mapResultadosPorSecao(indexMap, resultados) {
-  const bySection = { mt1: ["-", "-", "-", "-"], mt2: ["-", "-", "-", "-"], bt: ["-", "-", "-", "-"], ral: ["-", "-", "-", "-"] };
-  resultados.forEach((res, i) => {
-    const pos = indexMap[i];
-    if (!pos) return;
-    bySection[pos.secao][pos.idx] = res.estado_mecanico;
-  });
-  return bySection;
-}
-
 export function Tracao() {
   const { projetoAtivo } = useProjectStore();
   const { obterEstadoTracaoVisual, salvarEstadoTracaoVisual } = useGridStore();
@@ -118,12 +90,7 @@ export function Tracao() {
       if (!projetoId) throw new Error("Projeto ativo nao encontrado.");
 
       const resistenciaNominal = toNumberOr(300, estadoVisual.modeloPoste);
-      const merged = [
-        ...secaoToPayload("mt1", estadoVisual.secoes.mt1, resistenciaNominal),
-        ...secaoToPayload("mt2", estadoVisual.secoes.mt2, resistenciaNominal),
-        ...secaoToPayload("bt", estadoVisual.secoes.bt, resistenciaNominal),
-        ...secaoToPayload("ral", estadoVisual.secoes.ral, resistenciaNominal),
-      ];
+      const merged = montarPostesTracao(estadoVisual.secoes, resistenciaNominal);
 
       if (merged.length === 0) {
         throw new Error("Preencha pelo menos uma travessia antes de calcular.");
@@ -133,31 +100,13 @@ export function Tracao() {
       return { data: response.data, postosEntrada: merged };
     },
     onSuccess: ({ data, postosEntrada }) => {
-      const indexMap = [];
-      let k = 0;
-      ["mt1", "mt2", "bt", "ral"].forEach((secao) => {
-        estadoVisual.secoes[secao].forEach((travessia, idx) => {
-          const temValor = ["tipoCabo", "vao", "flecha", "angulo", "qtdCabos", "qtdLigacoes"].some(
-            (key) => String(travessia[key] || "").trim() !== ""
-          );
-          if (temValor && postosEntrada[k]) {
-            indexMap.push({ secao, idx });
-            k += 1;
-          }
-        });
-      });
+      const indexMap = montarIndexMapTracao(estadoVisual.secoes, postosEntrada);
       setStatusPorSecao(mapResultadosPorSecao(indexMap, data.resultados || []));
     },
   });
 
   const resumo = useMemo(() => {
-    const resultados = mutation.data?.data?.resultados || [];
-    const totais = { APROVADO: 0, ALERTA: 0, REPROVADO: 0 };
-    resultados.forEach((item) => {
-      const key = item.estado_mecanico;
-      if (totais[key] !== undefined) totais[key] += 1;
-    });
-    return totais;
+    return resumirResultadosTracao(mutation.data?.data?.resultados || []);
   }, [mutation.data]);
 
   if (!projetoId) {
