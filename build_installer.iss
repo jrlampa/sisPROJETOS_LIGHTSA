@@ -4,9 +4,13 @@
 #define BuildSourceDir "dist_desktop\\sisPROJETOS"
 #endif
 
+#ifndef MyAppVersion
+#define MyAppVersion "0.0.0"
+#endif
+
 [Setup]
 AppName=sisPROJETOS LIGHT S.A.
-AppVersion=1.0.0
+AppVersion={#MyAppVersion}
 AppPublisher=LIGHT S.A.
 DefaultDirName={localappdata}\sisPROJETOS
 DefaultGroupName=sisPROJETOS LIGHT

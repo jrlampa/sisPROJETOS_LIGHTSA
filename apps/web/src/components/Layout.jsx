@@ -3,6 +3,8 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 import { useAuthStore } from "../store/useAuthStore";
 
+/* global __APP_VERSION__ */
+
 const linkStyle = ({ isActive }) => ({
   color: isActive ? "#0f172a" : "#1d4ed8",
   textDecoration: "none",
@@ -22,6 +24,7 @@ export function Layout() {
   const navigate = useNavigate();
   const usuario = useAuthStore((s) => s.usuario);
   const logout = useAuthStore((s) => s.logout);
+  const appVersion = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "0.0.0";
 
   const handleLogout = () => {
     logout();
@@ -116,6 +119,16 @@ export function Layout() {
           </NavLink>
         </nav>
         <Outlet />
+        <footer
+          style={{
+            marginTop: "24px",
+            color: "#64748b",
+            fontSize: "0.75rem",
+            textAlign: "right",
+          }}
+        >
+          v{appVersion}
+        </footer>
       </main>
     </div>
   );

@@ -18,6 +18,7 @@ PYI_DIST_DIR = ROOT_DIR / "dist_desktop"
 PYI_WORK_DIR = ROOT_DIR / "build_pyinstaller"
 OBFUSCATED_ROOT_DIR = ROOT_DIR / "dist_obfuscated"
 OBFUSCATED_DOMAIN_DIR = OBFUSCATED_ROOT_DIR / "packages" / "domain"
+VERSION_FILE = ROOT_DIR / "VERSION"
 NPM_CMD = "npm.cmd" if os.name == "nt" else "npm"
 ISCC_CANDIDATES = [
     Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe"),
@@ -46,6 +47,16 @@ def _safe_rmtree(path: Path, retries: int = 5, delay_seconds: float = 0.7) -> No
             if attempt == retries:
                 raise
             time.sleep(delay_seconds)
+
+
+def read_version() -> str:
+    """Le a versao da aplicacao no arquivo VERSION da raiz."""
+
+    try:
+        version = VERSION_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        return "0.0.0"
+    return version or "0.0.0"
 
 
 def build_frontend() -> None:
@@ -91,6 +102,7 @@ def build_executable() -> None:
         raise RuntimeError("Dominio obfuscado nao encontrado. Execute a etapa de obfuscacao antes do PyInstaller.")
 
     add_data = f"apps/web/dist{os.pathsep}apps/web/dist"
+    add_version_file = f"VERSION{os.pathsep}."
     add_obfuscated_domain = f"{OBFUSCATED_DOMAIN_DIR}{os.pathsep}packages/domain"
     _run(
         [
@@ -114,6 +126,8 @@ def build_executable() -> None:
             "packages.domain",
             "--add-data",
             add_data,
+            "--add-data",
+            add_version_file,
             "--add-data",
             add_obfuscated_domain,
             "--paths",
@@ -162,7 +176,15 @@ def build_installer() -> None:
         raise RuntimeError("Arquivo build_installer.iss nao encontrado na raiz do projeto.")
 
     build_source_dir = str((PYI_DIST_DIR / "sisPROJETOS").relative_to(ROOT_DIR))
-    _run([str(iscc_path), f"/DBuildSourceDir={build_source_dir}", str(iss_file)])
+    app_version = read_version()
+    _run(
+        [
+            str(iscc_path),
+            f"/DBuildSourceDir={build_source_dir}",
+            f"/DMyAppVersion={app_version}",
+            str(iss_file),
+        ]
+    )
 
     installer_path = OUTPUT_DIR / "Instalar_sisPROJETOS.exe"
     if installer_path.exists():

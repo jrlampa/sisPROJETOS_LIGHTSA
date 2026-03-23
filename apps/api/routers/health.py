@@ -19,10 +19,11 @@ def get_session_factory(request: Request) -> Callable[[], Session]:
 
 
 @router.get("/health")
-def health() -> dict[str, str]:
+def health(request: Request) -> dict[str, str]:
     """Liveness probe simples para load balancer e container runtime."""
 
-    return {"status": "ok", "version": "1.0.0"}
+    app_version = getattr(request.app.state, "app_version", "0.0.0")
+    return {"status": "ok", "version": app_version}
 
 
 @router.get("/health/deep", include_in_schema=False)

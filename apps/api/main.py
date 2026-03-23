@@ -26,6 +26,17 @@ from packages.infrastructure.database.session import build_engine, create_sessio
 
 log_path = setup_file_logging()
 logger = logging.getLogger(__name__)
+VERSION_FILE = Path(__file__).resolve().parents[2] / "VERSION"
+
+
+def read_app_version() -> str:
+    """Le versao da aplicacao a partir do arquivo VERSION na raiz."""
+
+    try:
+        version = VERSION_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        return "0.0.0"
+    return version or "0.0.0"
 
 
 def _normalizar_erro_validacao(exc: RequestValidationError) -> str:
@@ -55,13 +66,15 @@ def create_app(database_url: str | None = None) -> FastAPI:
     resolved_database_url = database_url or os.getenv(
         "DATABASE_URL", "sqlite+pysqlite:///./sisprojetos_local.db"
     )
+    app_version = read_app_version()
     logger.info("Inicializando API FastAPI com logging em ficheiro: %s", log_path)
 
     app = FastAPI(
         title="sisPROJETOS LIGHT S.A.",
-        version="0.1.0",
+        version=app_version,
         default_response_class=ORJSONResponse,
     )
+    app.state.app_version = app_version
 
     app.add_middleware(
         CORSMiddleware,
