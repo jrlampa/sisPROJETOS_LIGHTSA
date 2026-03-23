@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from apps.api.routers.auth import router as auth_router
 from apps.api.routers.cad import router as cad_router
@@ -28,6 +31,18 @@ def _normalizar_erro_validacao(exc: RequestValidationError) -> str:
         if erro.get("type") == "json_invalid":
             return "JSON invalido no corpo da requisicao."
     return "Dados invalidos enviados para a API."
+
+
+class SPAStaticFiles(StaticFiles):
+    """Servidor de assets com fallback para index.html (SPA React Router)."""
+
+    async def get_response(self, path: str, scope):  # type: ignore[override]
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == status.HTTP_404_NOT_FOUND:
+                return await super().get_response("index.html", scope)
+            raise
 
 
 def create_app(database_url: str | None = None) -> FastAPI:
@@ -105,9 +120,13 @@ def create_app(database_url: str | None = None) -> FastAPI:
             content={"detail": "Nao foi possivel processar a requisicao."},
         )
 
-    @app.get("/")
-    def hello_world() -> dict[str, str]:
-        return {"message": "Hello World - sisPROJETOS LIGHT API"}
+    web_dist_dir = Path(__file__).resolve().parents[2] / "apps" / "web" / "dist"
+    if web_dist_dir.exists():
+        app.mount(
+            "/",
+            SPAStaticFiles(directory=str(web_dist_dir), html=True),
+            name="web",
+        )
 
     return app
 
