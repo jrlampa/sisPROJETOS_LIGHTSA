@@ -206,7 +206,10 @@ class CQTAnalise(BaseModel):
     def trafo_dentro_do_limite(self) -> bool:
         """Indica conformidade do transformador no cenário analisado."""
 
-        return self.centro_carga.transformador.fator_carga_percent <= self.limite_carregamento_trafo_percent
+        return (
+            self.centro_carga.transformador.fator_carga_percent
+            <= self.limite_carregamento_trafo_percent
+        )
 
     @computed_field
     @property
@@ -244,9 +247,7 @@ class CQTAnalise(BaseModel):
                 )
         else:
             if self.recuperacao_clandestino_confirmada is not None:
-                raise ValueError(
-                    "Campos de clandestino nao podem ser usados em projetos normais."
-                )
+                raise ValueError("Campos de clandestino nao podem ser usados em projetos normais.")
             if self.quantidade_ligacoes_irregulares is not None:
                 raise ValueError(
                     "Quantidade de ligacoes irregulares so pode ser informada em clandestinos."

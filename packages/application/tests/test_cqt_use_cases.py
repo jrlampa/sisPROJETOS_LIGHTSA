@@ -12,8 +12,8 @@ from packages.application.use_cases.cqt_use_cases import ExecutarAnaliseCQTUseCa
 from packages.application.use_cases.projeto_use_cases import CriarProjetoUseCase
 from packages.infrastructure.database.models import (
     Base,
-    CQTAnaliseORM,
     CentroCargaORM,
+    CQTAnaliseORM,
     TransformadorORM,
     TrechoEletricoORM,
 )

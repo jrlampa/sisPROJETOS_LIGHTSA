@@ -103,7 +103,9 @@ def test_gerar_pacote_final_cria_zip_e_persiste_status_concluido() -> None:
 
     projeto = CriarProjetoUseCase(session_factory=session_factory).executar(_dados_projeto())
     ExecutarAnaliseCQTUseCase(session_factory=session_factory).executar(projeto.id, _dados_cqt())
-    CalcularTracaoProjetoUseCase(session_factory=session_factory).executar(projeto.id, _dados_tracao())
+    CalcularTracaoProjetoUseCase(session_factory=session_factory).executar(
+        projeto.id, _dados_tracao()
+    )
 
     pacote = GerarPacoteFinalUseCase(session_factory=session_factory).executar(projeto.id)
 

@@ -98,7 +98,9 @@ def test_helpers_de_traversal_tratam_casos_sem_catenaria_ou_sem_mt1() -> None:
     assert bt_t1_inativo.active is False
     assert bt_armado_sem_flecha.active is True
     assert bt_armado_sem_flecha.catenary == 0.0
-    assert _normalize(resultante=100.0, altura_ancoragem=7.0, altura_poste=_ZeroDenominator()) == 0.0
+    assert (
+        _normalize(resultante=100.0, altura_ancoragem=7.0, altura_poste=_ZeroDenominator()) == 0.0
+    )
 
 
 def test_calcular_polo_cobre_caminhos_sem_mt_com_btz_e_ral_ativos() -> None:

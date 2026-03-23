@@ -136,7 +136,9 @@ class PacoteEntrega(BaseModel):
             }
         )
 
-    def marcar_como_concluido(self, caminho: str, arquivos_contidos: tuple[str, ...]) -> "PacoteEntrega":
+    def marcar_como_concluido(
+        self, caminho: str, arquivos_contidos: tuple[str, ...]
+    ) -> "PacoteEntrega":
         return self.model_copy(
             update={
                 "status": StatusExportacao.CONCLUIDO,

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import sqlite3
+from collections.abc import Callable
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
@@ -27,6 +27,7 @@ def build_engine(database_url: str) -> Engine:
     engine = create_engine(database_url, **engine_kwargs)
 
     if database_url.startswith("sqlite"):
+
         @event.listens_for(engine, "connect")
         def _set_sqlite_pragmas(dbapi_connection, connection_record) -> None:  # type: ignore[no-untyped-def]
             del connection_record

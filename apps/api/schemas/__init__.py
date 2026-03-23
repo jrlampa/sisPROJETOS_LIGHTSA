@@ -2,13 +2,18 @@
 
 from .cad_schemas import ImportacaoDxfResponse, LayerSumarioDTO
 from .cqt_schemas import (
-    CQTAnaliseRequest,
-    CQTAnaliseResponse,
     CentroCargaDTO,
     CondutorDTO,
+    CQTAnaliseRequest,
+    CQTAnaliseResponse,
     TipoRedeDTO,
     TransformadorDTO,
     TrechoEletricoDTO,
+)
+from .exportacao_schemas import (
+    GerarPacoteResponse,
+    PacoteEntregaDTO,
+    StatusExportacaoDTO,
 )
 from .projeto_schemas import (
     AvancarEtapaRequest,
@@ -21,11 +26,6 @@ from .projeto_schemas import (
     ProjetoResponse,
     TipoEvidenciaDTO,
     TipoProjetoDTO,
-)
-from .exportacao_schemas import (
-    GerarPacoteResponse,
-    PacoteEntregaDTO,
-    StatusExportacaoDTO,
 )
 from .tracao_schemas import (
     CalcularTracaoRequest,

@@ -47,7 +47,9 @@ class ProjetoRepository:
         registro.localidade = projeto.localidade
         registro.etapa_atual = projeto.etapa_atual.value
         registro.checklist_triagem = projeto.checklist_triagem.model_dump(mode="json")
-        registro.evidencias = [evidencia.model_dump(mode="json") for evidencia in projeto.evidencias]
+        registro.evidencias = [
+            evidencia.model_dump(mode="json") for evidencia in projeto.evidencias
+        ]
         registro.criado_em = projeto.criado_em
         return projeto
 

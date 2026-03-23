@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import tempfile
 import os
+import tempfile
 
 import ezdxf
 from fastapi.testclient import TestClient
@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 from apps.api.core.security import get_current_user
 from apps.api.main import create_app
 from packages.domain.auth.models import RoleUsuario, Usuario
-
 
 # ---------------------------------------------------------------------------
 # Helpers de fixture
@@ -91,10 +90,12 @@ def test_upload_dxf_retorna_200_e_sumario_correto():
     assert resp.status_code == 201, resp.text
     projeto_id = resp.json()["id"]
 
-    tmp_path = criar_dxf_em_disco([
-        ((0.0, 0.0, 0.0), (3.0, 4.0, 0.0)),    # comprimento XY = 5.0
-        ((10.0, 0.0, 0.0), (10.0, 10.0, 0.0)),  # comprimento XY = 10.0
-    ])
+    tmp_path = criar_dxf_em_disco(
+        [
+            ((0.0, 0.0, 0.0), (3.0, 4.0, 0.0)),  # comprimento XY = 5.0
+            ((10.0, 0.0, 0.0), (10.0, 10.0, 0.0)),  # comprimento XY = 10.0
+        ]
+    )
 
     try:
         with open(tmp_path, "rb") as f:
@@ -162,6 +163,7 @@ def test_upload_dxf_agrupa_layers_distintas():
 def test_upload_dxf_retorna_404_para_projeto_inexistente():
     """Upload para projeto_id inexistente deve retornar HTTP 404."""
     import uuid
+
     client = build_client()
 
     tmp_path = criar_dxf_em_disco([((0, 0, 0), (1, 1, 0))])

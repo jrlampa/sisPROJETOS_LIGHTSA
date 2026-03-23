@@ -7,6 +7,17 @@ Exposes the two main public symbols:
 All other symbols are available for direct import when needed.
 """
 
+from .plan1_tables import (
+    CABOS_POR_REDE,
+    CABOS_TABLE,
+    POSTE_TABLE,
+    REDE_TABLE,
+    WIND_COEFF,
+    lookup_cable_diam,
+    lookup_cable_peso,
+    lookup_poste_ecc,
+    lookup_rede_qtd_cabos,
+)
 from .ponto_blocks import (
     BTTraversalInput,
     BTZeroTraversalInput,
@@ -15,17 +26,6 @@ from .ponto_blocks import (
     PoloOutput,
     RamaisTraversalInput,
     calcular_polo,
-)
-from .plan1_tables import (
-    CABOS_TABLE,
-    CABOS_POR_REDE,
-    POSTE_TABLE,
-    REDE_TABLE,
-    WIND_COEFF,
-    lookup_cable_diam,
-    lookup_cable_peso,
-    lookup_poste_ecc,
-    lookup_rede_qtd_cabos,
 )
 
 __all__ = [

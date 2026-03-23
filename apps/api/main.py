@@ -91,8 +91,12 @@ def create_app(database_url: str | None = None) -> FastAPI:
     )
 
     engine = build_engine(resolved_database_url)
-    # O esquema passa a ser gerido exclusivamente por migracoes Alembic.
-    # Base.metadata.create_all(bind=engine)
+    # Para SQLite em memoria (testes) cria o esquema diretamente;
+    # em producao o esquema e gerido por migracoes Alembic.
+    if ":memory:" in resolved_database_url:
+        from packages.infrastructure.database.models import Base
+
+        Base.metadata.create_all(bind=engine)
     app.state.session_factory = create_session_factory(resolved_database_url, engine=engine)
 
     app.include_router(auth_router, prefix="/api")
