@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from apps.api.core.security import get_current_user, require_write_access
 from apps.api.schemas.exportacao_schemas import GerarPacoteResponse, PacoteEntregaDTO
 from packages.application.use_cases.exportacao_use_cases import GerarPacoteFinalUseCase
 from packages.domain.exportacao.models import StatusExportacao
@@ -32,6 +33,7 @@ def get_session_factory(request: Request) -> Callable[[], Session]:
 def gerar_pacote_exportacao(
     projeto_id: UUID,
     session_factory: Callable[[], Session] = Depends(get_session_factory),
+    _: object = Depends(require_write_access),
 ) -> GerarPacoteResponse:
     """Gera Excel, PDF e ZIP final para o projeto informado."""
 
@@ -53,6 +55,7 @@ def gerar_pacote_exportacao(
 def download_pacote_exportacao(
     projeto_id: UUID,
     session_factory: Callable[[], Session] = Depends(get_session_factory),
+    _: object = Depends(get_current_user),
 ) -> FileResponse:
     """Realiza download do ZIP final quando o pacote estiver concluido."""
 

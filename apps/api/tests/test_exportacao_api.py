@@ -6,11 +6,16 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from apps.api.core.security import get_current_user
 from apps.api.main import create_app
+from packages.domain.auth.models import RoleUsuario, Usuario
+
+_TEST_ADMIN = Usuario(email="test@api.com", nome="Test Admin", role=RoleUsuario.ADMIN)
 
 
 def build_client() -> TestClient:
     app = create_app("sqlite+pysqlite:///:memory:")
+    app.dependency_overrides[get_current_user] = lambda: _TEST_ADMIN
     return TestClient(app)
 
 

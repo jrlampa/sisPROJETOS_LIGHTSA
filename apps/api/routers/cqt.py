@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from apps.api.core.security import require_write_access
 from apps.api.schemas.cqt_schemas import CQTAnaliseRequest, CQTAnaliseResponse
 from packages.application.use_cases.cqt_use_cases import ExecutarAnaliseCQTUseCase
 
@@ -26,6 +27,7 @@ def executar_analise_cqt(
     projeto_id: UUID,
     payload: CQTAnaliseRequest,
     session_factory: Callable[[], Session] = Depends(get_session_factory),
+    _: object = Depends(require_write_access),
 ) -> CQTAnaliseResponse:
     """Executa análise CQT, persiste os resultados e retorna cálculos consolidados."""
 

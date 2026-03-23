@@ -10,6 +10,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
+from apps.api.core.security import require_write_access
 from apps.api.schemas.cad_schemas import ImportacaoDxfResponse
 from packages.application.use_cases.cad_use_cases import ImportarArquivoDxfUseCase
 
@@ -37,6 +38,7 @@ def importar_dxf(
     projeto_id: UUID,
     file: UploadFile,
     session_factory: Callable[[], Session] = Depends(get_session_factory),
+    _: object = Depends(require_write_access),
 ) -> ImportacaoDxfResponse:
     """Processa o upload, delega ao use case e retorna o sumário CAD."""
 

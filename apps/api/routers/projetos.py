@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from apps.api.core.security import require_write_access
 from apps.api.schemas.projeto_schemas import (
     AvancarEtapaRequest,
     AvancarEtapaResponse,
@@ -34,6 +35,7 @@ def get_session_factory(request: Request) -> Callable[[], Session]:
 def criar_projeto(
     payload: ProjetoCreateRequest,
     session_factory: Callable[[], Session] = Depends(get_session_factory),
+    _: object = Depends(require_write_access),
 ) -> ProjetoResponse:
     """Cria um projeto validando regras de dominio via caso de uso."""
 
@@ -51,6 +53,7 @@ def avancar_etapa(
     projeto_id: UUID,
     payload: AvancarEtapaRequest,
     session_factory: Callable[[], Session] = Depends(get_session_factory),
+    _: object = Depends(require_write_access),
 ) -> AvancarEtapaResponse:
     """Avança a etapa do projeto e registra evento de auditoria."""
 

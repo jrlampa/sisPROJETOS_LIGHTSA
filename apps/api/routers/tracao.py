@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from apps.api.core.security import require_write_access
 from apps.api.schemas.tracao_schemas import CalcularTracaoRequest, CalcularTracaoResponse, ResultadoTracaoDTO
 from packages.application.use_cases.tracao_use_cases import CalcularTracaoProjetoUseCase
 
@@ -30,6 +31,7 @@ def calcular_tracao_projeto(
     projeto_id: UUID,
     payload: CalcularTracaoRequest,
     session_factory: Callable[[], Session] = Depends(get_session_factory),
+    _: object = Depends(require_write_access),
 ) -> CalcularTracaoResponse:
     """Calcula e persiste os resultados mecanicos de tracao do projeto."""
 
