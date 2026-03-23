@@ -42,6 +42,9 @@ export function Layout() {
           <NavLink to="/cad" style={linkStyle}>
             Mapeamento CAD
           </NavLink>
+          <NavLink to="/exportacao" style={linkStyle}>
+            Pacote Final
+          </NavLink>
         </nav>
         <Outlet />
       </main>
