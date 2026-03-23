@@ -2,14 +2,24 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const versionFile = path.resolve(__dirname, "..", "..", "VERSION");
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const versionFile = path.resolve(currentDir, "..", "..", "VERSION");
 const appVersion = fs.existsSync(versionFile) ? fs.readFileSync(versionFile, "utf-8").trim() : "0.0.0";
 
 export default defineConfig({
   plugins: [react()],
   define: {
     __APP_VERSION__: JSON.stringify(appVersion || "0.0.0"),
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: "./src/setupTests.js",
+    css: true,
+    include: ["src/**/*.{test,spec}.{js,jsx,ts,tsx}"],
+    exclude: ["tests/e2e/**", "node_modules/**", "dist/**"],
   },
   build: {
     sourcemap: false,
