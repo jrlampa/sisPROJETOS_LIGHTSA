@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -23,6 +24,7 @@ from packages.application.use_cases.projeto_use_cases import (
 from packages.domain.workflow.models import EtapaProjeto
 
 router = APIRouter(prefix="/projetos", tags=["projetos"])
+logger = logging.getLogger(__name__)
 
 
 def get_session_factory(request: Request) -> Callable[[], Session]:
@@ -45,6 +47,7 @@ def criar_projeto(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
+    logger.info("Projeto criado com sucesso: projeto_id=%s", projeto.id)
     return ProjetoResponse.from_domain(projeto)
 
 

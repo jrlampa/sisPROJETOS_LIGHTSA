@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -14,6 +15,7 @@ from apps.api.schemas.cqt_schemas import CQTAnaliseRequest, CQTAnaliseResponse
 from packages.application.use_cases.cqt_use_cases import ExecutarAnaliseCQTUseCase
 
 router = APIRouter(tags=["cqt"])
+logger = logging.getLogger(__name__)
 
 
 def get_session_factory(request: Request) -> Callable[[], Session]:
@@ -41,4 +43,5 @@ def executar_analise_cqt(
         code = status.HTTP_404_NOT_FOUND if "nao encontrado" in message.lower() else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=code, detail=message) from exc
 
+    logger.info("Analise CQT concluida com sucesso: projeto_id=%s", projeto_id)
     return CQTAnaliseResponse.from_domain(analise)

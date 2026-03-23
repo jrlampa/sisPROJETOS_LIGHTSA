@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI, Request, status
@@ -13,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from apps.api.core.logger import setup_file_logging
 from apps.api.routers.auth import router as auth_router
 from apps.api.routers.cad import router as cad_router
 from apps.api.routers.cqt import router as cqt_router
@@ -21,6 +23,9 @@ from apps.api.routers.health import router as health_router
 from apps.api.routers.projetos import router as projetos_router
 from apps.api.routers.tracao import router as tracao_router
 from packages.infrastructure.database.session import build_engine, create_session_factory
+
+log_path = setup_file_logging()
+logger = logging.getLogger(__name__)
 
 
 def _normalizar_erro_validacao(exc: RequestValidationError) -> str:
@@ -50,6 +55,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     resolved_database_url = database_url or os.getenv(
         "DATABASE_URL", "sqlite+pysqlite:///./sisprojetos_local.db"
     )
+    logger.info("Inicializando API FastAPI com logging em ficheiro: %s", log_path)
 
     app = FastAPI(title="sisPROJETOS LIGHT S.A.", version="0.1.0")
 
@@ -82,9 +88,16 @@ def create_app(database_url: str | None = None) -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_exception_handler(
-        _: Request,
+        request: Request,
         exc: RequestValidationError,
     ) -> JSONResponse:
+        logger.error(
+            "RequestValidationError em %s %s: %s",
+            request.method,
+            request.url.path,
+            exc,
+            exc_info=True,
+        )
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
@@ -95,9 +108,16 @@ def create_app(database_url: str | None = None) -> FastAPI:
 
     @app.exception_handler(ValidationError)
     async def pydantic_validation_exception_handler(
-        _: Request,
+        request: Request,
         exc: ValidationError,
     ) -> JSONResponse:
+        logger.error(
+            "ValidationError em %s %s: %s",
+            request.method,
+            request.url.path,
+            exc,
+            exc_info=True,
+        )
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
@@ -107,14 +127,28 @@ def create_app(database_url: str | None = None) -> FastAPI:
         )
 
     @app.exception_handler(ValueError)
-    async def value_error_exception_handler(_: Request, exc: ValueError) -> JSONResponse:
+    async def value_error_exception_handler(request: Request, exc: ValueError) -> JSONResponse:
+        logger.error(
+            "ValueError em %s %s: %s",
+            request.method,
+            request.url.path,
+            exc,
+            exc_info=True,
+        )
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"detail": str(exc) or "Requisicao invalida."},
         )
 
     @app.exception_handler(Exception)
-    async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        logger.error(
+            "Erro nao tratado em %s %s: %s",
+            request.method,
+            request.url.path,
+            exc,
+            exc_info=True,
+        )
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={"detail": "Nao foi possivel processar a requisicao."},
