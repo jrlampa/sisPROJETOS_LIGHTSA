@@ -221,3 +221,74 @@ body {
 .result-bad {
   background: var(--excel-bad);
 }
+
+.excel-container {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 12px;
+  color: #000;
+  margin: 0;
+  padding: 0;
+}
+
+.excel-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+  table-layout: fixed;
+}
+
+.excel-th-dark {
+  background: #305496;
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  border: 1px solid #8ea9db;
+  padding: 4px;
+}
+
+.excel-th-light {
+  background: #d9e1f2;
+  color: #000;
+  text-align: center;
+  border: 1px solid #8ea9db;
+  padding: 4px;
+  font-weight: 600;
+}
+
+.excel-td {
+  background: #fff;
+  border: 1px solid #b2b2b2;
+  padding: 2px 4px;
+  vertical-align: middle;
+}
+
+.excel-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  box-sizing: border-box;
+}
+
+.excel-input:focus,
+.excel-td select:focus {
+  box-shadow: inset 0 0 0 1px rgba(48, 84, 150, 0.45);
+}
+
+.excel-td select {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.excel-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
