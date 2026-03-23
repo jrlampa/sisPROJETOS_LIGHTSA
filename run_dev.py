@@ -1,13 +1,25 @@
 from __future__ import annotations
 
+import os
+import shutil
 import signal
 import subprocess
+import sys
 import threading
 from typing import TextIO
 
 BLUE = "\033[94m"
 GREEN = "\033[92m"
 RESET = "\033[0m"
+
+
+def resolve_executable(*candidates: str) -> str:
+    """Return the first executable found in PATH from the given candidates."""
+    for candidate in candidates:
+        resolved = shutil.which(candidate)
+        if resolved:
+            return resolved
+    raise FileNotFoundError(f"Executavel nao encontrado no PATH: {', '.join(candidates)}")
 
 
 def stream_logs(prefix: str, color: str, stream: TextIO) -> None:
@@ -27,7 +39,25 @@ def terminate_process(proc: subprocess.Popen[str], name: str) -> None:
         return
 
     print(f"Encerrando {name}...")
-    proc.terminate()
+    if os.name == "nt":
+        if name == "WEB":
+            subprocess.run(
+                ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            try:
+                proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+            return
+        try:
+            proc.send_signal(signal.CTRL_BREAK_EVENT)
+        except (ValueError, OSError):
+            proc.terminate()
+    else:
+        proc.terminate()
     try:
         proc.wait(timeout=10)
     except subprocess.TimeoutExpired:
@@ -36,22 +66,36 @@ def terminate_process(proc: subprocess.Popen[str], name: str) -> None:
 
 
 def main() -> int:
-    web_cmd = ["npm", "--prefix", "apps/web", "run", "dev"]
-    api_cmd = ["python", "-m", "uvicorn", "apps.api.main:app", "--reload", "--port", "8000"]
+    npm_exe = resolve_executable("npm.cmd", "npm")
+    python_exe = sys.executable
+
+    web_cmd = [npm_exe, "--prefix", "apps/web", "run", "dev"]
+    api_cmd = [python_exe, "-m", "uvicorn", "apps.api.main:app", "--reload", "--port", "8000"]
+    web_env = os.environ.copy()
+    web_env.setdefault("VITE_API_BASE_URL", "http://127.0.0.1:8000/api")
+
+    creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
 
     web_proc = subprocess.Popen(
         web_cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1,
+        creationflags=creationflags,
+        env=web_env,
     )
     api_proc = subprocess.Popen(
         api_cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1,
+        creationflags=creationflags,
     )
 
     web_thread = threading.Thread(

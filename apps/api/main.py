@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import os
 import logging
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request, status
@@ -95,13 +95,13 @@ def create_app(database_url: str | None = None) -> FastAPI:
     # Base.metadata.create_all(bind=engine)
     app.state.session_factory = create_session_factory(resolved_database_url, engine=engine)
 
-    app.include_router(auth_router)
-    app.include_router(projetos_router)
-    app.include_router(cqt_router)
-    app.include_router(cad_router)
-    app.include_router(tracao_router)
-    app.include_router(exportacao_router)
-    app.include_router(health_router)
+    app.include_router(auth_router, prefix="/api")
+    app.include_router(projetos_router, prefix="/api")
+    app.include_router(cqt_router, prefix="/api")
+    app.include_router(cad_router, prefix="/api")
+    app.include_router(tracao_router, prefix="/api")
+    app.include_router(exportacao_router, prefix="/api")
+    app.include_router(health_router, prefix="/api")
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_exception_handler(

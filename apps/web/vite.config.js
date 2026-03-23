@@ -10,6 +10,14 @@ const appVersion = fs.existsSync(versionFile) ? fs.readFileSync(versionFile, "ut
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+    },
+  },
   define: {
     __APP_VERSION__: JSON.stringify(appVersion || "0.0.0"),
   },
