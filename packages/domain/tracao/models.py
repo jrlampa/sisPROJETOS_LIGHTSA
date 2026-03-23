@@ -21,8 +21,8 @@ class EstadoMecanico(str, Enum):
     Limiares aplicados sobre o percentual de carregamento em relacao
     a resistencia nominal do poste:
     - APROVADO:  carregamento <= 80%
-    - ALERTA:    80% < carregamento <= 100%
-    - REPROVADO: carregamento > 100%
+    - ALERTA:    80% < carregamento <= 105%
+    - REPROVADO: carregamento > 105%
     """
 
     APROVADO = "APROVADO"
@@ -90,7 +90,7 @@ class Poste(BaseModel):
     def estado_mecanico(self) -> EstadoMecanico:
         """Classificacao tecnica do poste baseada no percentual de carregamento."""
         p = self.percentual_carregamento
-        if p > 100.0:
+        if p > 105.0:
             return EstadoMecanico.REPROVADO
         if p > 80.0:
             return EstadoMecanico.ALERTA

@@ -111,8 +111,8 @@ def test_poste_estado_alerta_entre_80_e_100_percent() -> None:
     assert poste.estado_mecanico is EstadoMecanico.ALERTA
 
 
-def test_poste_estado_reprovado_acima_de_100_percent() -> None:
-    """Carregamento acima da resistencia nominal classifica o poste como REPROVADO."""
+def test_poste_estado_reprovado_acima_de_105_percent() -> None:
+    """Carregamento acima de 105% da resistencia nominal classifica como REPROVADO."""
     poste = Poste(
         codigo="PE-006",
         resistencia_nominal_daN=300.0,
@@ -145,6 +145,30 @@ def test_poste_no_limite_exato_100_percent_e_alerta() -> None:
 
     assert poste.percentual_carregamento == pytest.approx(100.0, rel=1e-6)
     assert poste.estado_mecanico is EstadoMecanico.ALERTA
+
+
+def test_poste_no_limite_exato_105_percent_nao_reprova() -> None:
+    """Carregamento exatamente em 105% deve permanecer fora de REPROVADO."""
+    poste = Poste(
+        codigo="PE-008B",
+        resistencia_nominal_daN=300.0,
+        vaos=(_vao(tracao_daN=315.0, azimute_graus=0.0),),
+    )
+
+    assert poste.percentual_carregamento == pytest.approx(105.0, rel=1e-6)
+    assert poste.estado_mecanico is EstadoMecanico.ALERTA
+
+
+def test_poste_acima_de_105_percent_reprova() -> None:
+    """Carregamento estritamente maior que 105% deve reprovar."""
+    poste = Poste(
+        codigo="PE-008C",
+        resistencia_nominal_daN=300.0,
+        vaos=(_vao(tracao_daN=316.0, azimute_graus=0.0),),
+    )
+
+    assert poste.percentual_carregamento == pytest.approx(105.333333, rel=1e-6)
+    assert poste.estado_mecanico is EstadoMecanico.REPROVADO
 
 
 # ---------------------------------------------------------------------------
