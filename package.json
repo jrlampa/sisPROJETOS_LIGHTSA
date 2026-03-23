@@ -1,0 +1,39 @@
+{
+  "name": "sisprojetos_lightsa",
+  "version": "1.0.0",
+  "description": "O sisPROJETOS e um motor de calculo hibrido Web/Desktop para projetos de rede da LIGHT S.A., desenhado para padronizar o fluxo tecnico e reduzir retrabalho operacional.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "lint-staged": "lint-staged",
+    "test:domain:strict": "python -m pytest -q --cov=packages/domain --cov-fail-under=100 packages/domain/tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrlampa/sisPROJETOS_LIGHTSA.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jrlampa/sisPROJETOS_LIGHTSA/issues"
+  },
+  "homepage": "https://github.com/jrlampa/sisPROJETOS_LIGHTSA#readme",
+  "lint-staged": {
+    "apps/web/**/*.{js,jsx,ts,tsx}": [
+      "npm --prefix apps/web run lint --"
+    ],
+    "**/*.py": [
+      "python -m ruff format",
+      "python -m ruff check"
+    ]
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0"
+  }
+}

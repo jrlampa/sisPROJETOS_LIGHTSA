@@ -20,6 +20,14 @@ export default defineConfig({
     css: true,
     include: ["src/**/*.{test,spec}.{js,jsx,ts,tsx}"],
     exclude: ["tests/e2e/**", "node_modules/**", "dist/**"],
+    coverage: {
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80,
+      },
+    },
   },
   build: {
     sourcemap: false,
