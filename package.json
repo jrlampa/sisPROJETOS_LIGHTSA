@@ -9,7 +9,8 @@
   "scripts": {
     "prepare": "husky",
     "lint-staged": "lint-staged",
-    "test:domain:strict": "python -m pytest -q --cov=packages/domain --cov-fail-under=100 packages/domain/tests"
+    "test:domain:strict": "python -m pytest -q --cov=packages/domain --cov-fail-under=100 packages/domain/tests",
+    "check-parity": "python -m pytest packages/domain/tests/test_excel_parity.py --no-cov"
   },
   "repository": {
     "type": "git",
