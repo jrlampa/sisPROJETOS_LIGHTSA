@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from apps.api.routers.auth import router as auth_router
 from apps.api.routers.cad import router as cad_router
@@ -17,6 +21,15 @@ from packages.infrastructure.database.models import Base
 from packages.infrastructure.database.session import build_engine, create_session_factory
 
 
+def _normalizar_erro_validacao(exc: RequestValidationError) -> str:
+    """Traduz erros comuns de validacao para mensagens objetivas em portugues."""
+
+    for erro in exc.errors():
+        if erro.get("type") == "json_invalid":
+            return "JSON invalido no corpo da requisicao."
+    return "Dados invalidos enviados para a API."
+
+
 def create_app(database_url: str | None = None) -> FastAPI:
     """Cria a aplicacao FastAPI com infraestrutura local-first inicializada."""
 
@@ -25,6 +38,20 @@ def create_app(database_url: str | None = None) -> FastAPI:
     )
 
     app = FastAPI(title="sisPROJETOS LIGHT S.A.", version="0.1.0")
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost",
+            "http://localhost:3000",
+            "http://127.0.0.1",
+            "http://127.0.0.1:3000",
+        ],
+        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     engine = build_engine(resolved_database_url)
     Base.metadata.create_all(bind=engine)
@@ -37,6 +64,46 @@ def create_app(database_url: str | None = None) -> FastAPI:
     app.include_router(tracao_router)
     app.include_router(exportacao_router)
     app.include_router(health_router)
+
+    @app.exception_handler(RequestValidationError)
+    async def request_validation_exception_handler(
+        _: Request,
+        exc: RequestValidationError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "detail": _normalizar_erro_validacao(exc),
+                "errors": exc.errors(),
+            },
+        )
+
+    @app.exception_handler(ValidationError)
+    async def pydantic_validation_exception_handler(
+        _: Request,
+        exc: ValidationError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "detail": "Dados invalidos para processamento.",
+                "errors": exc.errors(),
+            },
+        )
+
+    @app.exception_handler(ValueError)
+    async def value_error_exception_handler(_: Request, exc: ValueError) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": str(exc) or "Requisicao invalida."},
+        )
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={"detail": "Nao foi possivel processar a requisicao."},
+        )
 
     @app.get("/")
     def hello_world() -> dict[str, str]:
