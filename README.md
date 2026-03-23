@@ -82,6 +82,31 @@ npm run dev
 - `GET /health`: liveness check simples para runtime e balanceadores.
 - `GET /health/deep`: readiness check com validacao de conectividade ao banco.
 
+## Build Desktop (PyWebView + PyInstaller)
+
+Para gerar a versao desktop standalone em um unico comando, execute na raiz:
+
+```bash
+python build_desktop.py
+```
+
+O script automatiza:
+
+1. build do frontend (`apps/web/dist`);
+2. empacotamento do `desktop.py` com PyInstaller incluindo os ficheiros estaticos.
+
+Ao final, o executavel e gerado em `dist/sisPROJETOS.exe` (ou pasta `dist/sisPROJETOS/`, dependendo do modo de build).
+
+### Gerar instalador final (Inno Setup)
+
+1. Abra o ficheiro `build_installer.iss` no Inno Setup Compiler.
+2. Compile o script para gerar o instalador `.exe`.
+
+O template ja esta configurado para instalacao sem privilegios de administrador:
+
+- `PrivilegesRequired=lowest`
+- `DefaultDirName={localappdata}\sisPROJETOS`
+
 ## Estrutura do repositorio
 
 - `apps/api`: backend FastAPI
