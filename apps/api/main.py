@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, ORJSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -57,7 +57,11 @@ def create_app(database_url: str | None = None) -> FastAPI:
     )
     logger.info("Inicializando API FastAPI com logging em ficheiro: %s", log_path)
 
-    app = FastAPI(title="sisPROJETOS LIGHT S.A.", version="0.1.0")
+    app = FastAPI(
+        title="sisPROJETOS LIGHT S.A.",
+        version="0.1.0",
+        default_response_class=ORJSONResponse,
+    )
 
     app.add_middleware(
         CORSMiddleware,
