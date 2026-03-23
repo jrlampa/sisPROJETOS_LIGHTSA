@@ -1,5 +1,14 @@
 import { Building2 } from "lucide-react";
-import { Link, Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
+
+const linkStyle = ({ isActive }) => ({
+  color: isActive ? "#0f172a" : "#1d4ed8",
+  textDecoration: "none",
+  fontWeight: 700,
+  padding: "8px 10px",
+  borderRadius: "6px",
+  background: isActive ? "#dbeafe" : "transparent",
+});
 
 export function Layout() {
   return (
@@ -20,10 +29,13 @@ export function Layout() {
       </header>
 
       <main style={{ maxWidth: "960px", margin: "0 auto", padding: "24px" }}>
-        <nav style={{ marginBottom: "16px" }}>
-          <Link to="/" style={{ color: "#1d4ed8", textDecoration: "none", fontWeight: 600 }}>
+        <nav style={{ marginBottom: "16px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <NavLink to="/" style={linkStyle}>
             Dashboard
-          </Link>
+          </NavLink>
+          <NavLink to="/cqt" style={linkStyle}>
+            CQT
+          </NavLink>
         </nav>
         <Outlet />
       </main>
