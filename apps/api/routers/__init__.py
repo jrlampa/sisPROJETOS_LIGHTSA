@@ -3,5 +3,6 @@
 from .cad import router as cad_router
 from .cqt import router as cqt_router
 from .projetos import router as projetos_router
+from .tracao import router as tracao_router
 
-__all__ = ["cad_router", "cqt_router", "projetos_router"]
+__all__ = ["cad_router", "cqt_router", "projetos_router", "tracao_router"]

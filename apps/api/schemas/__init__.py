@@ -22,6 +22,13 @@ from .projeto_schemas import (
     TipoEvidenciaDTO,
     TipoProjetoDTO,
 )
+from .tracao_schemas import (
+    CalcularTracaoRequest,
+    CalcularTracaoResponse,
+    PosteBrutoDTO,
+    ResultadoTracaoDTO,
+    VaoDTO,
+)
 
 __all__ = [
     "ImportacaoDxfResponse",
@@ -43,4 +50,9 @@ __all__ = [
     "ProjetoResponse",
     "TipoEvidenciaDTO",
     "TipoProjetoDTO",
+    "CalcularTracaoRequest",
+    "CalcularTracaoResponse",
+    "PosteBrutoDTO",
+    "ResultadoTracaoDTO",
+    "VaoDTO",
 ]
