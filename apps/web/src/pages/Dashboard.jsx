@@ -117,6 +117,7 @@ export function Dashboard() {
 
       {mutation.isSuccess && projetoAtivo ? (
         <p
+          data-testid="project-created-success"
           style={{
             marginTop: "16px",
             padding: "10px 12px",
@@ -127,6 +128,22 @@ export function Dashboard() {
           }}
         >
           Projeto criado com sucesso. ID: {projetoAtivo.id}
+        </p>
+      ) : null}
+
+      {projetoAtivo ? (
+        <p
+          data-testid="active-project-id"
+          style={{
+            marginTop: "10px",
+            padding: "10px 12px",
+            borderRadius: "8px",
+            background: "#e0f2fe",
+            color: "#0c4a6e",
+            fontWeight: 600,
+          }}
+        >
+          Projeto ativo carregado: ID: {projetoAtivo.id}
         </p>
       ) : null}
 
