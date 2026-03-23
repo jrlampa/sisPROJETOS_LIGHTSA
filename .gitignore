@@ -26,6 +26,7 @@ dist/
 dist_desktop/
 build/
 build_pyinstaller/
+dist_obfuscated/
 .cache/
 .vite/
 .turbo/

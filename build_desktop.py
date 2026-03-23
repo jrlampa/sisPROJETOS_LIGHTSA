@@ -16,6 +16,8 @@ WEB_DIST_DIR = ROOT_DIR / "apps" / "web" / "dist"
 OUTPUT_DIR = ROOT_DIR / "Output"
 PYI_DIST_DIR = ROOT_DIR / "dist_desktop"
 PYI_WORK_DIR = ROOT_DIR / "build_pyinstaller"
+OBFUSCATED_ROOT_DIR = ROOT_DIR / "dist_obfuscated"
+OBFUSCATED_DOMAIN_DIR = OBFUSCATED_ROOT_DIR / "packages" / "domain"
 NPM_CMD = "npm.cmd" if os.name == "nt" else "npm"
 ISCC_CANDIDATES = [
     Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe"),
@@ -57,13 +59,39 @@ def build_frontend() -> None:
     LOGGER.info("Frontend gerado com sucesso em: %s", WEB_DIST_DIR)
 
 
+def obfuscate_domain() -> None:
+    """Obfusca packages/domain com PyArmor para proteger logica matematica."""
+
+    _safe_rmtree(OBFUSCATED_ROOT_DIR)
+
+    _run(
+        [
+            sys.executable,
+            "-m",
+            "pyarmor.cli",
+            "gen",
+            "-O",
+            str(OBFUSCATED_DOMAIN_DIR),
+            "packages/domain",
+        ]
+    )
+
+    if not OBFUSCATED_DOMAIN_DIR.exists() or not OBFUSCATED_DOMAIN_DIR.is_dir():
+        raise RuntimeError("PyArmor nao gerou o dominio obfuscado em dist_obfuscated/packages/domain.")
+
+    LOGGER.info("Dominio obfuscado com sucesso em: %s", OBFUSCATED_DOMAIN_DIR)
+
+
 def build_executable() -> None:
     """Gera executavel desktop com PyInstaller incluindo os assets do frontend."""
 
     _safe_rmtree(PYI_DIST_DIR / "sisPROJETOS")
     _safe_rmtree(PYI_WORK_DIR)
+    if not OBFUSCATED_DOMAIN_DIR.exists():
+        raise RuntimeError("Dominio obfuscado nao encontrado. Execute a etapa de obfuscacao antes do PyInstaller.")
 
     add_data = f"apps/web/dist{os.pathsep}apps/web/dist"
+    add_obfuscated_domain = f"{OBFUSCATED_DOMAIN_DIR}{os.pathsep}packages/domain"
     _run(
         [
             sys.executable,
@@ -82,8 +110,14 @@ def build_executable() -> None:
             "pdb",
             "--exclude-module",
             "email",
+            "--exclude-module",
+            "packages.domain",
             "--add-data",
             add_data,
+            "--add-data",
+            add_obfuscated_domain,
+            "--paths",
+            str(OBFUSCATED_ROOT_DIR),
             "--distpath",
             str(PYI_DIST_DIR),
             "--workpath",
@@ -140,6 +174,7 @@ def build_installer() -> None:
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="[build_desktop] %(message)s")
     build_frontend()
+    obfuscate_domain()
     build_executable()
     build_installer()
     LOGGER.info("Processo concluido.")
