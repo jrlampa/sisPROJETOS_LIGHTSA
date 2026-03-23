@@ -55,7 +55,7 @@ export function CAD() {
   if (!projetoId) {
     return (
       <section className="sec-panel" style={{ padding: "16px", color: "#9a3412", fontWeight: 700 }}>
-        Nenhum projeto ativo encontrado. Crie ou selecione um projeto no Dashboard antes de importar DXF.
+          Nenhum projeto ativo encontrado. Crie ou selecione um projeto no Painel antes de importar DXF.
       </section>
     );
   }

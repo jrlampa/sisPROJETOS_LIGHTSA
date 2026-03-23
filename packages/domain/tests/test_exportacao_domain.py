@@ -42,6 +42,15 @@ def test_relatorio_tecnico_marca_erro() -> None:
     assert com_erro.mensagem_erro == "Falha ao gerar PDF."
 
 
+def test_relatorio_tecnico_marca_processando() -> None:
+    relatorio = RelatorioTecnico(projeto_id=uuid4(), mensagem_erro="Falha anterior")
+
+    processando = relatorio.marcar_como_processando()
+
+    assert processando.status is StatusExportacao.PROCESSANDO
+    assert processando.mensagem_erro is None
+
+
 def test_exportacao_excel_inicia_pendente_com_tipo_default() -> None:
     excel = ExportacaoExcel(projeto_id=uuid4())
 
@@ -65,6 +74,15 @@ def test_exportacao_excel_marca_erro() -> None:
 
     assert com_erro.status is StatusExportacao.ERRO
     assert com_erro.mensagem_erro == "Template nao encontrado."
+
+
+def test_exportacao_excel_marca_processando() -> None:
+    excel = ExportacaoExcel(projeto_id=uuid4(), mensagem_erro="Falha anterior")
+
+    processando = excel.marcar_como_processando()
+
+    assert processando.status is StatusExportacao.PROCESSANDO
+    assert processando.mensagem_erro is None
 
 
 def test_pacote_entrega_inicia_pendente_sem_arquivos() -> None:
@@ -100,6 +118,15 @@ def test_pacote_entrega_marca_erro() -> None:
     assert com_erro.mensagem_erro == "Nao foi possivel compactar os artefatos."
 
 
+def test_pacote_entrega_marca_processando() -> None:
+    pacote = PacoteEntrega(projeto_id=uuid4(), mensagem_erro="Falha anterior")
+
+    processando = pacote.marcar_como_processando()
+
+    assert processando.status is StatusExportacao.PROCESSANDO
+    assert processando.mensagem_erro is None
+
+
 def test_validacao_rejeita_concluido_sem_caminho() -> None:
     with pytest.raises(ValidationError, match="concluido exige caminho_arquivo"):
         RelatorioTecnico(projeto_id=uuid4(), status=StatusExportacao.CONCLUIDO)
@@ -108,3 +135,21 @@ def test_validacao_rejeita_concluido_sem_caminho() -> None:
 def test_validacao_rejeita_erro_sem_mensagem() -> None:
     with pytest.raises(ValidationError, match="com erro exige mensagem_erro"):
         PacoteEntrega(projeto_id=uuid4(), status=StatusExportacao.ERRO)
+
+
+def test_validacao_rejeita_relatorio_com_erro_sem_mensagem() -> None:
+    with pytest.raises(ValidationError, match="Relatorio com erro exige mensagem_erro"):
+        RelatorioTecnico(projeto_id=uuid4(), status=StatusExportacao.ERRO)
+
+
+def test_validacao_rejeita_exportacao_excel_invalida() -> None:
+    with pytest.raises(ValidationError, match="Exportacao Excel concluida exige caminho_arquivo"):
+        ExportacaoExcel(projeto_id=uuid4(), status=StatusExportacao.CONCLUIDO)
+
+    with pytest.raises(ValidationError, match="Exportacao Excel com erro exige mensagem_erro"):
+        ExportacaoExcel(projeto_id=uuid4(), status=StatusExportacao.ERRO)
+
+
+def test_validacao_rejeita_pacote_concluido_sem_caminho() -> None:
+    with pytest.raises(ValidationError, match="Pacote de entrega concluido exige caminho_arquivo"):
+        PacoteEntrega(projeto_id=uuid4(), status=StatusExportacao.CONCLUIDO)

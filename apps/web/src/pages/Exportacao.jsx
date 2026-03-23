@@ -46,7 +46,7 @@ export function Exportacao() {
   if (!projetoId) {
     return (
       <section className="sec-panel" style={{ padding: "16px", color: "#9a3412", fontWeight: 700 }}>
-        Nenhum projeto ativo encontrado. Crie ou selecione um projeto no Dashboard antes de gerar o pacote final.
+        Nenhum projeto ativo encontrado. Crie ou selecione um projeto no Painel antes de gerar o pacote final.
       </section>
     );
   }
@@ -68,7 +68,7 @@ export function Exportacao() {
           disabled={mutation.isPending}
         >
           <FileArchive size={15} />
-          {mutation.isPending ? "Loading..." : "Gerar Pacote Tecnico (ZIP)"}
+          {mutation.isPending ? "Gerando..." : "Gerar Pacote Tecnico (ZIP)"}
         </button>
 
         {mutation.isError ? (

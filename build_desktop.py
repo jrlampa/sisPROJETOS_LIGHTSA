@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 import subprocess
@@ -21,9 +22,11 @@ ISCC_CANDIDATES = [
     Path(r"C:\Program Files\Inno Setup 6\ISCC.exe"),
 ]
 
+LOGGER = logging.getLogger("build_desktop")
+
 
 def _run(command: list[str]) -> None:
-    print(f"[build_desktop] Executando: {' '.join(command)}")
+    LOGGER.info("Executando: %s", " ".join(command))
     subprocess.run(command, check=True, cwd=str(ROOT_DIR))
 
 
@@ -51,7 +54,7 @@ def build_frontend() -> None:
     if not WEB_DIST_DIR.exists() or not WEB_DIST_DIR.is_dir():
         raise RuntimeError("Build do frontend nao gerou apps/web/dist.")
 
-    print(f"[build_desktop] Frontend gerado com sucesso em: {WEB_DIST_DIR}")
+    LOGGER.info("Frontend gerado com sucesso em: %s", WEB_DIST_DIR)
 
 
 def build_executable() -> None:
@@ -86,9 +89,9 @@ def build_executable() -> None:
         raise RuntimeError("PyInstaller terminou sem gerar dist_desktop/sisPROJETOS.exe ou dist_desktop/sisPROJETOS/.")
 
     if exe_path.exists():
-        print(f"[build_desktop] Executavel gerado: {exe_path}")
+        LOGGER.info("Executavel gerado: %s", exe_path)
     else:
-        print(f"[build_desktop] Pacote gerado: {folder_path}")
+        LOGGER.info("Pacote gerado: %s", folder_path)
 
 
 def _find_iscc() -> Path | None:
@@ -105,9 +108,8 @@ def build_installer() -> None:
 
     iscc_path = _find_iscc()
     if iscc_path is None:
-        print(
-            "[build_desktop] Aviso: Inno Setup nao encontrado. "
-            "O executavel standalone foi gerado, mas o instalador final foi ignorado."
+        LOGGER.warning(
+            "Inno Setup nao encontrado. O executavel standalone foi gerado, mas o instalador final foi ignorado."
         )
         return
 
@@ -120,16 +122,17 @@ def build_installer() -> None:
 
     installer_path = OUTPUT_DIR / "Instalar_sisPROJETOS.exe"
     if installer_path.exists():
-        print(f"[build_desktop] Instalador gerado: {installer_path}")
+        LOGGER.info("Instalador gerado: %s", installer_path)
     else:
         raise RuntimeError("Inno Setup executado, mas o instalador nao foi encontrado em Output.")
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="[build_desktop] %(message)s")
     build_frontend()
     build_executable()
     build_installer()
-    print("[build_desktop] Processo concluido.")
+    LOGGER.info("Processo concluido.")
 
 
 if __name__ == "__main__":

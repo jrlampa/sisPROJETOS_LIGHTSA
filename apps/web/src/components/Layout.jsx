@@ -100,7 +100,7 @@ export function Layout() {
       <main className="page-wrap" style={{ maxWidth: "960px", margin: "14px auto", padding: "24px" }}>
         <nav style={{ marginBottom: "16px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <NavLink to="/" style={linkStyle}>
-            Dashboard
+            Painel
           </NavLink>
           <NavLink to="/cqt" style={linkStyle}>
             CQT

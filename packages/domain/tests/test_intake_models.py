@@ -30,11 +30,45 @@ def test_falha_quando_clandestino_nao_informa_campos_especificos() -> None:
         ChecklistTriagem(tipo_projeto=TipoProjeto.CLANDESTINOS)
 
 
+def test_falha_quando_clandestino_nao_informa_quantidade_irregular() -> None:
+    with pytest.raises(ValidationError, match="quantidade de ligacoes irregulares"):
+        ChecklistTriagem(
+            tipo_projeto=TipoProjeto.CLANDESTINOS,
+            recuperacao_clandestino_confirmada=True,
+        )
+
+
+def test_falha_quando_clandestino_usa_flag_de_leitura_maxima() -> None:
+    with pytest.raises(ValidationError, match="nao deve depender da flag de leitura maxima"):
+        ChecklistTriagem(
+            tipo_projeto=TipoProjeto.CLANDESTINOS,
+            recuperacao_clandestino_confirmada=True,
+            quantidade_ligacoes_irregulares=2,
+            recebeu_leitura_trafo_maxima=True,
+        )
+
+
 def test_falha_quando_projeto_nao_clandestino_tem_leitura_sem_valores_do_trafo() -> None:
     with pytest.raises(ValidationError, match="corrente e carga maxima"):
         ChecklistTriagem(
             tipo_projeto=TipoProjeto.ROBUSTEZ_BT,
             recebeu_leitura_trafo_maxima=True,
+        )
+
+
+def test_falha_quando_projeto_nao_clandestino_recebe_confirmacao_de_clandestino() -> None:
+    with pytest.raises(ValidationError, match="Campos especificos de clandestino"):
+        ChecklistTriagem(
+            tipo_projeto=TipoProjeto.ROBUSTEZ_BT,
+            recuperacao_clandestino_confirmada=True,
+        )
+
+
+def test_falha_quando_projeto_nao_clandestino_recebe_quantidade_irregular() -> None:
+    with pytest.raises(ValidationError, match="Quantidade de ligacoes irregulares"):
+        ChecklistTriagem(
+            tipo_projeto=TipoProjeto.ROBUSTEZ_BT,
+            quantidade_ligacoes_irregulares=1,
         )
 
 

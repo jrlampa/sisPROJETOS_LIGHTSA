@@ -420,3 +420,36 @@ def test_motor_fisico_traversal_com_vao_exige_flecha() -> None:
             altura_poste_m=11.0,
             altura_ancoragem_m=7.0,
         )
+
+
+def test_motor_fisico_com_btz_e_ral_aciona_agrupamento_do_helper() -> None:
+    poste = Poste(
+        codigo="PE-BTZ-RAL",
+        resistencia_nominal_daN=300.0,
+        traversals_fisicas=(
+            TraversalFisica(
+                nivel=NivelTracao.BTZ,
+                posicao=1,
+                qtd_ligacoes=6,
+                vao_m=20.0,
+                flecha_m=0.8,
+                angulo_graus=0.0,
+                altura_poste_m=11.0,
+                altura_ancoragem_m=7.0,
+            ),
+            TraversalFisica(
+                nivel=NivelTracao.RAL,
+                posicao=1,
+                tipo_cabo="10 mm² - Bipolar",
+                qtd_cabos=2,
+                vao_m=18.0,
+                flecha_m=0.7,
+                angulo_graus=90.0,
+                altura_poste_m=11.0,
+                altura_ancoragem_m=6.5,
+            ),
+        ),
+    )
+
+    assert poste.esforco_resultante_daN > 0
+    assert poste.percentual_carregamento > 0

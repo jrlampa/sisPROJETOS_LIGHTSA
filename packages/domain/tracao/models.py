@@ -20,7 +20,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum
 from math import cos, radians, sin, sqrt
-from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator

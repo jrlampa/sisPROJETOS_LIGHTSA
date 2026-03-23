@@ -6,7 +6,6 @@ import { LegacyDiagramaPoste } from "../components/tracao/LegacyDiagramaPoste";
 import { LegacySecaoNivel } from "../components/tracao/LegacySecaoNivel";
 import { LegacyTabelaCarga } from "../components/tracao/LegacyTabelaCarga";
 import {
-  CAMPOS_BT,
   CAMPOS_BTZ,
   CAMPOS_MT,
   CAMPOS_RAL,
@@ -164,7 +163,7 @@ export function Tracao() {
   if (!projetoId) {
     return (
       <section className="sec-panel" style={{ padding: "16px", color: "#9a3412", fontWeight: 700 }}>
-        Nenhum projeto ativo encontrado. Crie ou selecione um projeto no Dashboard antes de calcular a Tracao.
+          Nenhum projeto ativo encontrado. Crie ou selecione um projeto no Painel antes de calcular a Tracao.
       </section>
     );
   }
