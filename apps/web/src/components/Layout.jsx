@@ -1,5 +1,7 @@
-import { Building2 } from "lucide-react";
-import { NavLink, Outlet } from "react-router-dom";
+import { Building2, LogOut, UserCircle } from "lucide-react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+
+import { useAuthStore } from "../store/useAuthStore";
 
 const linkStyle = ({ isActive }) => ({
   color: isActive ? "#0f172a" : "#1d4ed8",
@@ -10,7 +12,22 @@ const linkStyle = ({ isActive }) => ({
   background: isActive ? "#dbeafe" : "transparent",
 });
 
+const ROLE_LABEL = {
+  ADMIN: "Admin",
+  ENGENHEIRO: "Engenheiro",
+  CONVIDADO: "Convidado",
+};
+
 export function Layout() {
+  const navigate = useNavigate();
+  const usuario = useAuthStore((s) => s.usuario);
+  const logout = useAuthStore((s) => s.logout);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "#f6f8fc" }}>
       <header
@@ -18,14 +35,66 @@ export function Layout() {
           display: "flex",
           alignItems: "center",
           gap: "10px",
-          padding: "16px 24px",
+          padding: "14px 24px",
           background: "#0f172a",
           color: "#e2e8f0",
           borderBottom: "3px solid #f59e0b",
         }}
       >
         <Building2 size={20} />
-        <strong>sisPROJETOS LIGHT S.A.</strong>
+        <strong style={{ flex: 1 }}>sisPROJETOS LIGHT S.A.</strong>
+
+        {/* Informação do utilizador logado */}
+        {usuario && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontSize: "0.8125rem",
+              color: "#94a3b8",
+            }}
+          >
+            <UserCircle size={16} />
+            <span>
+              <span style={{ color: "#e2e8f0", fontWeight: 600 }}>{usuario.email}</span>
+              {" "}·{" "}
+              <span
+                style={{
+                  background: usuario.role === "CONVIDADO" ? "#854d0e" : "#1e3a5f",
+                  color: usuario.role === "CONVIDADO" ? "#fef08a" : "#93c5fd",
+                  padding: "2px 7px",
+                  borderRadius: "999px",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                }}
+              >
+                {ROLE_LABEL[usuario.role] ?? usuario.role}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Sair"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "5px 10px",
+                border: "1px solid #334155",
+                borderRadius: "6px",
+                background: "transparent",
+                color: "#cbd5e1",
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              <LogOut size={14} />
+              Sair
+            </button>
+          </div>
+        )}
       </header>
 
       <main className="page-wrap" style={{ maxWidth: "960px", margin: "14px auto", padding: "24px" }}>
