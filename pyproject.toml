@@ -1,0 +1,57 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+# Regras incompatíveis com formatação automática.
+ignore = ["E501", "W191", "E111", "E114", "E117", "D206", "COM812", "ISC001"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.12"
+pretty = true
+show_error_codes = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+no_implicit_optional = true
+ignore_missing_imports = true
+files = ["apps/api", "packages"]
+exclude = "(^dist/|^dist_desktop/|^dist_obfuscated/|^build/|^build_pyinstaller/|^\.venv/)"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra --strict-markers --strict-config --cov=apps/api --cov=packages/domain --cov-report=term-missing"
+testpaths = [
+  "apps/api/tests",
+  "packages/application/tests",
+  "packages/domain/tests",
+]
+norecursedirs = [
+  ".git",
+  ".venv",
+  "build",
+  "build_pyinstaller",
+  "dist",
+  "dist_desktop",
+  "dist_obfuscated",
+  "Output",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["apps/api", "packages/domain"]
+omit = [
+  "*/tests/*",
+  "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+precision = 0
