@@ -58,6 +58,8 @@ htmlcov/
 # Database local
 *.sqlite
 *.db
+*.db-wal
+*.db-shm
 
 # Desktop/electron
 *.asar
