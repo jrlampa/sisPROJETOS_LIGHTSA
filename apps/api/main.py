@@ -10,6 +10,7 @@ from apps.api.routers.auth import router as auth_router
 from apps.api.routers.cad import router as cad_router
 from apps.api.routers.cqt import router as cqt_router
 from apps.api.routers.exportacao import router as exportacao_router
+from apps.api.routers.health import router as health_router
 from apps.api.routers.projetos import router as projetos_router
 from apps.api.routers.tracao import router as tracao_router
 from packages.infrastructure.database.models import Base
@@ -35,14 +36,11 @@ def create_app(database_url: str | None = None) -> FastAPI:
     app.include_router(cad_router)
     app.include_router(tracao_router)
     app.include_router(exportacao_router)
+    app.include_router(health_router)
 
     @app.get("/")
     def hello_world() -> dict[str, str]:
         return {"message": "Hello World - sisPROJETOS LIGHT API"}
-
-    @app.get("/health")
-    def health() -> dict[str, str]:
-        return {"status": "ok", "service": "api"}
 
     return app
 
