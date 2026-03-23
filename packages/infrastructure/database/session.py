@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import sqlite3
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -23,7 +24,19 @@ def build_engine(database_url: str) -> Engine:
         if ":memory:" in database_url:
             engine_kwargs["poolclass"] = StaticPool
 
-    return create_engine(database_url, **engine_kwargs)
+    engine = create_engine(database_url, **engine_kwargs)
+
+    if database_url.startswith("sqlite"):
+        @event.listens_for(engine, "connect")
+        def _set_sqlite_pragmas(dbapi_connection, connection_record) -> None:  # type: ignore[no-untyped-def]
+            del connection_record
+            if isinstance(dbapi_connection, sqlite3.Connection):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL;")
+                cursor.execute("PRAGMA synchronous=NORMAL;")
+                cursor.close()
+
+    return engine
 
 
 def create_session_factory(
