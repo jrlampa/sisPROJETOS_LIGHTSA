@@ -3,19 +3,44 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parent
 WEB_DIST_DIR = ROOT_DIR / "apps" / "web" / "dist"
+OUTPUT_DIR = ROOT_DIR / "Output"
+PYI_DIST_DIR = ROOT_DIR / "dist_desktop"
+PYI_WORK_DIR = ROOT_DIR / "build_pyinstaller"
 NPM_CMD = "npm.cmd" if os.name == "nt" else "npm"
+ISCC_CANDIDATES = [
+    Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe"),
+    Path(r"C:\Program Files\Inno Setup 6\ISCC.exe"),
+]
 
 
 def _run(command: list[str]) -> None:
     print(f"[build_desktop] Executando: {' '.join(command)}")
     subprocess.run(command, check=True, cwd=str(ROOT_DIR))
+
+
+def _safe_rmtree(path: Path, retries: int = 5, delay_seconds: float = 0.7) -> None:
+    """Remove diretorio com tentativas extras para contornar locks temporarios no Windows."""
+
+    if not path.exists():
+        return
+
+    for attempt in range(1, retries + 1):
+        try:
+            shutil.rmtree(path)
+            return
+        except PermissionError:
+            if attempt == retries:
+                raise
+            time.sleep(delay_seconds)
 
 
 def build_frontend() -> None:
@@ -32,6 +57,9 @@ def build_frontend() -> None:
 def build_executable() -> None:
     """Gera executavel desktop com PyInstaller incluindo os assets do frontend."""
 
+    _safe_rmtree(PYI_DIST_DIR / "sisPROJETOS")
+    _safe_rmtree(PYI_WORK_DIR)
+
     add_data = f"apps/web/dist{os.pathsep}apps/web/dist"
     _run(
         [
@@ -43,15 +71,19 @@ def build_executable() -> None:
             "--windowed",
             "--add-data",
             add_data,
+            "--distpath",
+            str(PYI_DIST_DIR),
+            "--workpath",
+            str(PYI_WORK_DIR),
             "--noconfirm",
             "desktop.py",
         ]
     )
 
-    exe_path = ROOT_DIR / "dist" / "sisPROJETOS.exe"
-    folder_path = ROOT_DIR / "dist" / "sisPROJETOS"
+    exe_path = PYI_DIST_DIR / "sisPROJETOS.exe"
+    folder_path = PYI_DIST_DIR / "sisPROJETOS"
     if not exe_path.exists() and not folder_path.exists():
-        raise RuntimeError("PyInstaller terminou sem gerar dist/sisPROJETOS.exe ou dist/sisPROJETOS/.")
+        raise RuntimeError("PyInstaller terminou sem gerar dist_desktop/sisPROJETOS.exe ou dist_desktop/sisPROJETOS/.")
 
     if exe_path.exists():
         print(f"[build_desktop] Executavel gerado: {exe_path}")
@@ -59,10 +91,45 @@ def build_executable() -> None:
         print(f"[build_desktop] Pacote gerado: {folder_path}")
 
 
+def _find_iscc() -> Path | None:
+    """Localiza o compilador de script do Inno Setup nos caminhos padrao."""
+
+    for candidate in ISCC_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def build_installer() -> None:
+    """Compila o instalador final com Inno Setup em modo headless."""
+
+    iscc_path = _find_iscc()
+    if iscc_path is None:
+        print(
+            "[build_desktop] Aviso: Inno Setup nao encontrado. "
+            "O executavel standalone foi gerado, mas o instalador final foi ignorado."
+        )
+        return
+
+    iss_file = ROOT_DIR / "build_installer.iss"
+    if not iss_file.exists():
+        raise RuntimeError("Arquivo build_installer.iss nao encontrado na raiz do projeto.")
+
+    build_source_dir = str((PYI_DIST_DIR / "sisPROJETOS").relative_to(ROOT_DIR))
+    _run([str(iscc_path), f"/DBuildSourceDir={build_source_dir}", str(iss_file)])
+
+    installer_path = OUTPUT_DIR / "Instalar_sisPROJETOS.exe"
+    if installer_path.exists():
+        print(f"[build_desktop] Instalador gerado: {installer_path}")
+    else:
+        raise RuntimeError("Inno Setup executado, mas o instalador nao foi encontrado em Output.")
+
+
 def main() -> None:
     build_frontend()
     build_executable()
-    print("[build_desktop] Processo concluido com sucesso.")
+    build_installer()
+    print("[build_desktop] Processo concluido.")
 
 
 if __name__ == "__main__":
