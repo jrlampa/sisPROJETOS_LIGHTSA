@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Layout } from "./components/Layout";
 import { CAD } from "./pages/CAD";
 import { CQT } from "./pages/CQT";
@@ -23,24 +24,26 @@ function ProtectedRoute() {
 
 export function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          {/* Rota pública — não precisa de token */}
-          <Route path="/login" element={<Login />} />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            {/* Rota publica — nao precisa de token */}
+            <Route path="/login" element={<Login />} />
 
-          {/* Rotas protegidas — exigem token válido */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/cqt" element={<CQT />} />
-              <Route path="/tracao" element={<Tracao />} />
-              <Route path="/cad" element={<CAD />} />
-              <Route path="/exportacao" element={<Exportacao />} />
+            {/* Rotas protegidas — exigem token valido */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<Layout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/cqt" element={<CQT />} />
+                <Route path="/tracao" element={<Tracao />} />
+                <Route path="/cad" element={<CAD />} />
+                <Route path="/exportacao" element={<Exportacao />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

@@ -37,6 +37,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.code === "ERR_NETWORK") {
+      window.alert("Servidor inacessivel. Verifique a sua ligacao.");
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
       // Redireciona para login — window.location porque o interceptor está

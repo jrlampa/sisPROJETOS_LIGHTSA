@@ -7,6 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 from uuid import UUID
 
+import ezdxf
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
@@ -47,6 +48,13 @@ def importar_dxf(
     # mesmo em caso de exceção.
     tmp_path: str | None = None
     try:
+        extensao_upload = Path(file.filename or "upload.dxf").suffix.lower()
+        if extensao_upload != ".dxf":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Formato de ficheiro invalido. Envie um DXF valido.",
+            )
+
         sufixo = Path(file.filename or "upload.dxf").suffix or ".dxf"
         with tempfile.NamedTemporaryFile(suffix=sufixo, delete=False) as tmp:
             tmp.write(file.file.read())
@@ -67,10 +75,17 @@ def importar_dxf(
             else status.HTTP_400_BAD_REQUEST
         )
         raise HTTPException(status_code=code, detail=message) from exc
+    except (ezdxf.DXFError, OSError, UnicodeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Formato de ficheiro invalido. Envie um DXF valido.",
+        ) from exc
+    except HTTPException:
+        raise
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Erro ao processar o ficheiro DXF: {exc}",
+            detail="Nao foi possivel processar o ficheiro enviado.",
         ) from exc
     finally:
         if tmp_path is not None:
