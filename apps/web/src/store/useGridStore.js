@@ -10,6 +10,7 @@ function obterLinhas(mapa, projetoId, linhaInicialFactory) {
 export const useGridStore = create((set, get) => ({
   linhasCqtPorProjeto: {},
   linhasTracaoPorProjeto: {},
+  estadoTracaoVisualPorProjeto: {},
 
   obterLinhasCqt: (projetoId, linhaInicialFactory) =>
     obterLinhas(get().linhasCqtPorProjeto, projetoId, linhaInicialFactory),
@@ -33,6 +34,21 @@ export const useGridStore = create((set, get) => ({
       linhasTracaoPorProjeto: {
         ...state.linhasTracaoPorProjeto,
         [projetoId]: linhas,
+      },
+    }));
+  },
+
+  obterEstadoTracaoVisual: (projetoId, estadoInicialFactory) => {
+    if (!projetoId) return estadoInicialFactory();
+    return get().estadoTracaoVisualPorProjeto[projetoId] || estadoInicialFactory();
+  },
+
+  salvarEstadoTracaoVisual: (projetoId, estado) => {
+    if (!projetoId) return;
+    set((state) => ({
+      estadoTracaoVisualPorProjeto: {
+        ...state.estadoTracaoVisualPorProjeto,
+        [projetoId]: estado,
       },
     }));
   },

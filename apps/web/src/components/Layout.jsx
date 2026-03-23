@@ -39,6 +39,9 @@ export function Layout() {
           <NavLink to="/tracao" style={linkStyle}>
             Tracao
           </NavLink>
+          <NavLink to="/cad" style={linkStyle}>
+            Mapeamento CAD
+          </NavLink>
         </nav>
         <Outlet />
       </main>
