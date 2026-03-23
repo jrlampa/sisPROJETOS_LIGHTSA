@@ -34,6 +34,7 @@ EXCEL_PATH = Path(
     r"C:\Users\jonat\OneDrive - IM3 Brasil\LIGHT\PROJETOS\ZNA41723 - ROBUSTEZ DE BT\QDT_ZNA_41723_ATUAL.xlsm"
 )
 MAX_DIVERGENCIA_PERCENT = 0.01
+REL_TOL = 0.0001
 
 
 def _norm(value: object) -> str:
@@ -64,12 +65,13 @@ def _to_float(value: object, default: float = 0.0) -> float:
 
 
 def _assert_close_rel_percent(actual: float, expected: float, label: str) -> None:
+    is_close = math.isclose(actual, expected, rel_tol=REL_TOL, abs_tol=0.0)
     denom = max(abs(expected), 1e-12)
     diff_percent = (abs(actual - expected) / denom) * 100
-    assert diff_percent <= MAX_DIVERGENCIA_PERCENT, (
+    assert is_close, (
         f"Divergencia acima da tolerancia em {label}: "
         f"actual={actual:.10f}, expected={expected:.10f}, diff%={diff_percent:.10f}, "
-        f"tol%={MAX_DIVERGENCIA_PERCENT}"
+        f"tol_rel={REL_TOL} (~{MAX_DIVERGENCIA_PERCENT}%)"
     )
 
 
