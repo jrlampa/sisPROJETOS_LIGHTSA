@@ -28,13 +28,16 @@ export function Layout() {
         <strong>sisPROJETOS LIGHT S.A.</strong>
       </header>
 
-      <main style={{ maxWidth: "960px", margin: "0 auto", padding: "24px" }}>
+      <main className="page-wrap" style={{ maxWidth: "960px", margin: "14px auto", padding: "24px" }}>
         <nav style={{ marginBottom: "16px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <NavLink to="/" style={linkStyle}>
             Dashboard
           </NavLink>
           <NavLink to="/cqt" style={linkStyle}>
             CQT
+          </NavLink>
+          <NavLink to="/tracao" style={linkStyle}>
+            Tracao
           </NavLink>
         </nav>
         <Outlet />

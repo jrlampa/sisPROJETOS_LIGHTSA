@@ -1,0 +1,136 @@
+:root {
+  --excel-bg: #dce5f2;
+  --excel-panel: #ffffff;
+  --excel-border: #8fa1c2;
+  --excel-border-strong: #6f84a9;
+  --excel-header: #f0f3f8;
+  --excel-text: #172033;
+  --excel-focus: #2f66c1;
+  --excel-focus-ring: rgba(46, 105, 196, 0.3);
+  --excel-ok: #c6efce;
+  --excel-warn: #ffeb9c;
+  --excel-bad: #ffc7ce;
+}
+
+body {
+  font-family: "Calibri", Arial, sans-serif;
+  font-size: 11px;
+  color: var(--excel-text);
+  background: var(--excel-bg);
+}
+
+.page-wrap {
+  background: var(--excel-panel);
+  border: 1px solid var(--excel-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(23, 46, 90, 0.12);
+}
+
+.sec-panel {
+  border: 1px solid var(--excel-border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.sec-title {
+  text-align: center;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 5px 0;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--excel-border-strong);
+  background: linear-gradient(180deg, #ffffff 0%, #edf3fc 100%);
+}
+
+.sec-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.sec-table td,
+.sec-table th {
+  border: 1px solid var(--excel-border);
+  padding: 2px 3px;
+  height: 22px;
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+.sec-table th {
+  background: var(--excel-header);
+  font-weight: 700;
+  text-align: center;
+}
+
+.xlbl {
+  text-align: right;
+  white-space: nowrap;
+  background: #f8fbff;
+  font-weight: 600;
+}
+
+.xunit {
+  text-align: center;
+  color: #3f4f69;
+  white-space: nowrap;
+}
+
+.xcell {
+  width: 100%;
+  border: 1px solid var(--excel-border);
+  height: 18px;
+  padding: 0 3px;
+  font-size: 10px;
+  font-family: "Calibri", Arial, sans-serif;
+  outline: none;
+  background: #fdfefe;
+}
+
+.xcell:focus {
+  border-color: var(--excel-focus);
+  box-shadow: 0 0 0 2px var(--excel-focus-ring);
+}
+
+.btn-primary {
+  border: 1px solid #244f96;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #4d7fcd 0%, #3b66ad 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  border: 1px solid var(--excel-border);
+  border-radius: 6px;
+  background: #f8fbff;
+  color: #20355a;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.result-box {
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #b7d5ee;
+  background: #ecfeff;
+}
+
+.result-ok {
+  background: var(--excel-ok);
+}
+
+.result-warn {
+  background: var(--excel-warn);
+}
+
+.result-bad {
+  background: var(--excel-bad);
+}

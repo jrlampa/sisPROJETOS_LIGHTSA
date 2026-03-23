@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
-import DataGrid from "react-data-grid";
-import "react-data-grid/lib/styles.css";
 import { Calculator, PlusCircle } from "lucide-react";
 
 import api from "../lib/api";
+import { useGridStore } from "../store/useGridStore";
 import { useProjectStore } from "../store/useProjectStore";
 
 const LINHA_BASE = {
@@ -35,25 +34,35 @@ function obterCondutor(tipoCabo) {
 
 export function CQT() {
   const { projetoAtivo } = useProjectStore();
+  const { obterLinhasCqt, salvarLinhasCqt } = useGridStore();
   const [linhasTrecho, setLinhasTrecho] = useState([criarLinhaInicial()]);
 
-  const colunas = useMemo(
-    () => [
-      { key: "comprimento_m", name: "Comprimento (m)", editable: true },
-      { key: "corrente_a", name: "Corrente (A)", editable: true },
-      { key: "tipo_cabo", name: "Tipo de Cabo", editable: true },
-      { key: "fases", name: "Fases", editable: true },
-    ],
-    []
-  );
+  const projetoId = projetoAtivo?.id || null;
+
+  useEffect(() => {
+    if (!projetoId) return;
+    const linhasSalvas = obterLinhasCqt(projetoId, criarLinhaInicial);
+    setLinhasTrecho(linhasSalvas);
+  }, [obterLinhasCqt, projetoId]);
+
+  useEffect(() => {
+    if (!projetoId) return;
+    salvarLinhasCqt(projetoId, linhasTrecho);
+  }, [linhasTrecho, projetoId, salvarLinhasCqt]);
 
   const adicionarLinha = () => {
     setLinhasTrecho((atual) => [...atual, criarLinhaInicial(atual.length + 1)]);
   };
 
+  const atualizarLinha = (id, campo, valor) => {
+    setLinhasTrecho((atual) =>
+      atual.map((linha) => (linha.id === id ? { ...linha, [campo]: valor } : linha))
+    );
+  };
+
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!projetoAtivo?.id) {
+      if (!projetoId) {
         throw new Error("Projeto ativo nao encontrado.");
       }
 
@@ -89,129 +98,104 @@ export function CQT() {
         },
       };
 
-      const response = await api.post(`/projetos/${projetoAtivo.id}/cqt`, payload);
+      const response = await api.post(`/projetos/${projetoId}/cqt`, payload);
       return response.data;
     },
   });
 
-  if (!projetoAtivo?.id) {
+  const totalQueda = useMemo(() => mutation.data?.centro_carga?.queda_total_percent, [mutation.data]);
+
+  if (!projetoId) {
     return (
-      <section
-        style={{
-          background: "#fff7ed",
-          border: "1px solid #fed7aa",
-          borderRadius: "12px",
-          padding: "18px",
-          color: "#9a3412",
-          fontWeight: 600,
-        }}
-      >
+      <section className="sec-panel" style={{ padding: "16px", color: "#9a3412", fontWeight: 700 }}>
         Nenhum projeto ativo encontrado. Crie ou selecione um projeto no Dashboard antes de calcular o CQT.
       </section>
     );
   }
 
   return (
-    <section
-      style={{
-        background: "white",
-        borderRadius: "12px",
-        boxShadow: "0 4px 14px rgba(15, 23, 42, 0.08)",
-        padding: "20px",
-      }}
-    >
-      <h1 style={{ marginTop: 0, marginBottom: "8px" }}>Etapa 2: CQT</h1>
-      <p style={{ marginTop: 0, color: "#475569" }}>
-        Preencha os trechos como numa folha de calculo e execute o calculo de queda de tensao.
-      </p>
+    <section className="sec-panel">
+      <div className="sec-title">Etapa 2: CQT - Planilha</div>
 
-      <div style={{ marginBottom: "10px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        <button
-          type="button"
-          onClick={adicionarLinha}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            border: "1px solid #cbd5e1",
-            borderRadius: "8px",
-            padding: "10px 12px",
-            background: "#f8fafc",
-            cursor: "pointer",
-            fontWeight: 600,
-          }}
-        >
-          <PlusCircle size={16} />
-          Adicionar Linha
-        </button>
-
-        <button
-          type="button"
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            border: 0,
-            borderRadius: "8px",
-            padding: "10px 14px",
-            background: "#1d4ed8",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: 700,
-          }}
-        >
-          <Calculator size={16} />
-          Calcular CQT
-        </button>
-      </div>
-
-      <DataGrid
-        columns={colunas}
-        rows={linhasTrecho}
-        onRowsChange={setLinhasTrecho}
-        rowKeyGetter={(row) => row.id}
-        style={{ minHeight: 280, border: "1px solid #e2e8f0" }}
-      />
-
-      {mutation.isError ? (
-        <p
-          style={{
-            marginTop: "16px",
-            padding: "10px 12px",
-            borderRadius: "8px",
-            background: "#fee2e2",
-            color: "#991b1b",
-            fontWeight: 600,
-          }}
-        >
-          Falha no calculo CQT: {mutation.error?.response?.data?.detail || mutation.error?.message || "erro desconhecido"}
-        </p>
-      ) : null}
-
-      {mutation.isSuccess ? (
-        <div
-          style={{
-            marginTop: "16px",
-            padding: "14px",
-            borderRadius: "10px",
-            background: "#ecfeff",
-            border: "1px solid #a5f3fc",
-          }}
-        >
-          <strong style={{ display: "block", marginBottom: "8px" }}>Resultado do CQT</strong>
-          <p style={{ margin: "4px 0" }}>
-            Queda de Tensão Resultante: {mutation.data?.centro_carga?.queda_total_percent?.toFixed?.(3) ?? mutation.data?.centro_carga?.queda_total_percent ?? "N/A"}%
-          </p>
-          <p style={{ margin: "4px 0" }}>
-            Status do Trafo: {mutation.data?.trafo_dentro_do_limite ? "Dentro do limite" : "Fora do limite"}
-          </p>
-          <p style={{ margin: "4px 0" }}>
-            QDT Total no Limite: {mutation.data?.qdt_total_dentro_do_limite ? "Sim" : "Nao"}
-          </p>
+      <div style={{ padding: "10px" }}>
+        <div style={{ display: "flex", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
+          <button type="button" className="btn-secondary" onClick={adicionarLinha}>
+            <PlusCircle size={14} style={{ marginRight: 6 }} />
+            Adicionar Linha
+          </button>
+          <button type="button" className="btn-primary" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+            <Calculator size={14} style={{ marginRight: 6 }} />
+            Calcular CQT
+          </button>
         </div>
-      ) : null}
+
+        <table className="sec-table">
+          <thead>
+            <tr>
+              <th style={{ width: 80 }}>Trecho</th>
+              <th>Comprimento (m)</th>
+              <th>Corrente (A)</th>
+              <th>Tipo de Cabo</th>
+              <th>Fases</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhasTrecho.map((linha, idx) => (
+              <tr key={linha.id}>
+                <td className="xlbl">T{idx + 1}</td>
+                <td>
+                  <input
+                    className="xcell"
+                    value={linha.comprimento_m}
+                    onChange={(e) => atualizarLinha(linha.id, "comprimento_m", e.target.value)}
+                  />
+                </td>
+                <td>
+                  <input
+                    className="xcell"
+                    value={linha.corrente_a}
+                    onChange={(e) => atualizarLinha(linha.id, "corrente_a", e.target.value)}
+                  />
+                </td>
+                <td>
+                  <input
+                    className="xcell"
+                    value={linha.tipo_cabo}
+                    onChange={(e) => atualizarLinha(linha.id, "tipo_cabo", e.target.value)}
+                  />
+                </td>
+                <td>
+                  <input
+                    className="xcell"
+                    value={linha.fases}
+                    onChange={(e) => atualizarLinha(linha.id, "fases", e.target.value)}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {mutation.isError ? (
+          <p className="result-box result-bad">
+            Falha no calculo CQT: {mutation.error?.response?.data?.detail || mutation.error?.message || "erro desconhecido"}
+          </p>
+        ) : null}
+
+        {mutation.isSuccess ? (
+          <div className="result-box">
+            <p style={{ margin: "2px 0" }}>
+              <strong>Queda de Tensao Resultante:</strong> {typeof totalQueda === "number" ? totalQueda.toFixed(3) : "N/A"}%
+            </p>
+            <p style={{ margin: "2px 0" }}>
+              <strong>Status do Trafo:</strong> {mutation.data?.trafo_dentro_do_limite ? "Dentro do limite" : "Fora do limite"}
+            </p>
+            <p style={{ margin: "2px 0" }}>
+              <strong>QDT Total no Limite:</strong> {mutation.data?.qdt_total_dentro_do_limite ? "Sim" : "Nao"}
+            </p>
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }
