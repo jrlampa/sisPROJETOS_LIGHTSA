@@ -32,6 +32,9 @@ class ProjetoORM(Base):
     geometria_cad: Mapped["GeometriaProjetoORM | None"] = relationship(
         back_populates="projeto", uselist=False, cascade="all, delete-orphan"
     )
+    postes_tracao: Mapped[list["PosteTracaoORM"]] = relationship(
+        back_populates="projeto", cascade="all, delete-orphan"
+    )
 
 
 class HistoricoAuditoriaORM(Base):
@@ -162,6 +165,42 @@ class TrechoEletricoORM(Base):
 
     centro_carga: Mapped[CentroCargaORM] = relationship(back_populates="trechos")
     condutor: Mapped[CondutorORM] = relationship(back_populates="trechos")
+
+
+class PosteTracaoORM(Base):
+    """Representacao persistente do poste com os vaos de tracao em JSON."""
+
+    __tablename__ = "postes_tracao"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    projeto_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projetos.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    codigo: Mapped[str] = mapped_column(String(50), nullable=False)
+    resistencia_nominal_daN: Mapped[float] = mapped_column(Float, nullable=False)
+    vaos_json: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+
+    projeto: Mapped[ProjetoORM] = relationship(back_populates="postes_tracao")
+    resultado: Mapped["ResultadoTracaoORM"] = relationship(
+        back_populates="poste", uselist=False, cascade="all, delete-orphan"
+    )
+
+
+class ResultadoTracaoORM(Base):
+    """Representacao persistente do resultado mecanico calculado para um poste."""
+
+    __tablename__ = "resultados_tracao"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    poste_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("postes_tracao.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+    )
+    esforco_resultante_daN: Mapped[float] = mapped_column(Float, nullable=False)
+    percentual_carregamento: Mapped[float] = mapped_column(Float, nullable=False)
+    estado_mecanico: Mapped[str] = mapped_column(String(20), nullable=False)
+    calculado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    poste: Mapped[PosteTracaoORM] = relationship(back_populates="resultado")
 
 
 class GeometriaProjetoORM(Base):

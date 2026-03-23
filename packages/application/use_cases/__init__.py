@@ -3,10 +3,12 @@
 from .cad_use_cases import ImportarArquivoDxfUseCase
 from .cqt_use_cases import ExecutarAnaliseCQTUseCase
 from .projeto_use_cases import AvancarEtapaUseCase, CriarProjetoUseCase
+from .tracao_use_cases import CalcularTracaoProjetoUseCase
 
 __all__ = [
     "AvancarEtapaUseCase",
     "CriarProjetoUseCase",
     "ExecutarAnaliseCQTUseCase",
     "ImportarArquivoDxfUseCase",
+    "CalcularTracaoProjetoUseCase",
 ]
