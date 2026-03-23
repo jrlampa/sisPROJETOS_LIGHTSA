@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from packages.domain.cqt.models import CQTAnalise
@@ -94,3 +95,21 @@ class CQTRepository:
         analise_orm.centro_carga = centro_orm
         self._session.add(analise_orm)
         return analise
+
+    def obter_resumo_por_projeto(self, projeto_id: UUID) -> dict | None:
+        """Retorna um resumo da ultima analise CQT para exportacao de ficheiros."""
+        analise = self._session.scalars(
+            select(CQTAnaliseORM)
+            .where(CQTAnaliseORM.projeto_id == str(projeto_id))
+            .order_by(CQTAnaliseORM.criado_em.desc())
+            .limit(1)
+        ).one_or_none()
+        if analise is None:
+            return None
+
+        return {
+            "analise_id": analise.id,
+            "tipo_projeto": analise.tipo_projeto,
+            "qdt_total_dentro_do_limite": analise.qdt_total_dentro_do_limite,
+            "trafo_dentro_do_limite": analise.trafo_dentro_do_limite,
+        }

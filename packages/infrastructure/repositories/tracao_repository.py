@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from packages.domain.tracao.models import Poste, ResultadoTracao
@@ -61,3 +62,22 @@ class TracaoRepository:
             resultados.append(resultado)
 
         return resultados
+
+    def listar_resultados_por_projeto(self, projeto_id: UUID) -> list[dict]:
+        """Retorna resultados de tracao persistidos para uso na exportacao."""
+        rows = self._session.execute(
+            select(PosteTracaoORM, ResultadoTracaoORM)
+            .join(ResultadoTracaoORM, ResultadoTracaoORM.poste_id == PosteTracaoORM.id)
+            .where(PosteTracaoORM.projeto_id == str(projeto_id))
+            .order_by(PosteTracaoORM.codigo)
+        ).all()
+
+        return [
+            {
+                "poste_codigo": poste.codigo,
+                "esforco_resultante_daN": resultado.esforco_resultante_daN,
+                "percentual_carregamento": resultado.percentual_carregamento,
+                "estado_mecanico": resultado.estado_mecanico,
+            }
+            for poste, resultado in rows
+        ]

@@ -35,6 +35,9 @@ class ProjetoORM(Base):
     postes_tracao: Mapped[list["PosteTracaoORM"]] = relationship(
         back_populates="projeto", cascade="all, delete-orphan"
     )
+    pacote_entrega: Mapped["PacoteEntregaORM | None"] = relationship(
+        back_populates="projeto", uselist=False, cascade="all, delete-orphan"
+    )
 
 
 class HistoricoAuditoriaORM(Base):
@@ -201,6 +204,23 @@ class ResultadoTracaoORM(Base):
     calculado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     poste: Mapped[PosteTracaoORM] = relationship(back_populates="resultado")
+
+
+class PacoteEntregaORM(Base):
+    """Representacao persistente dos metadados do ZIP final de entrega."""
+
+    __tablename__ = "pacotes_entrega"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    projeto_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projetos.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    caminho_arquivo: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    arquivos_contidos: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    mensagem_erro: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    projeto: Mapped[ProjetoORM] = relationship(back_populates="pacote_entrega")
 
 
 class GeometriaProjetoORM(Base):
