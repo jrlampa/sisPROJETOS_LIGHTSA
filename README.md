@@ -1,47 +1,98 @@
-# sisPROJETOS LIGHT S.A.
+# sisPROJETOS LIGHT S.A. - Manual Oficial
 
-Plataforma de gestao de projetos de rede para a concessionaria LIGHT S.A., com estrategia hibrida (Desktop + SaaS), paridade progressiva com Excel e foco em automacao do fluxo tecnico.
+## Visao geral
 
-## Documentos Base
-- ROAMAP.MD
-- ARCHITECTURE.md
-- RAG/MEMORY.md
+O sisPROJETOS e um motor de calculo hibrido Web/Desktop para projetos de rede da LIGHT S.A., desenhado para padronizar o fluxo tecnico e reduzir retrabalho operacional.
 
-## Estrutura Inicial
-- apps/api: backend FastAPI
-- apps/web: frontend React + Vite
-- apps/desktop: shell desktop (fase seguinte)
-- packages/*: camadas DDD compartilhadas
+O sistema combina:
 
-## Como subir local com Docker
-1. Ajustar variaveis no .env.example conforme necessario.
-2. Executar:
+- operacao web para workflow e colaboracao;
+- capacidade de paridade com legados de engenharia;
+- arquitetura orientada a dominio para evolucao segura do produto.
+
+## Arquitetura
+
+### Frontend Thin (React + Vite)
+
+- Aplicacao SPA leve para orquestracao do fluxo.
+- Camada de UI focada em experiencia e produtividade, mantendo regras de negocio no backend.
+
+### Backend Smart (FastAPI + DDD)
+
+- API HTTP em FastAPI com organizacao por dominios e casos de uso.
+- Responsavel por autenticacao, validacoes de negocio, execucao de calculos e trilha de auditoria.
+
+### Persistencia (SQLite/JSON)
+
+- Persistencia local-first para execucao controlada em ambientes de desenvolvimento e homologacao.
+- Suporte a armazenamento estruturado para continuidade de evolucao para ambientes corporativos.
+
+## Como executar (producao)
+
+Na raiz do monorepo, execute:
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
-## Como subir frontend local
+Esse comando sobe os servicos `web`, `api` e `db` em rede compartilhada, com frontend servido por Nginx e backend FastAPI.
+
+## Como acessar
+
+- Frontend: http://localhost:3000
+- Swagger (via proxy do frontend): http://localhost:3000/api/docs
+- Swagger (acesso direto na API): http://localhost:8000/docs
+
+## Credenciais de teste
+
+Enquanto o fluxo de autenticacao permanece em modo mock no frontend:
+
+- use qualquer e-mail valido na tela de login;
+- selecione a role `ADMIN` ou `ENGENHEIRO` para operar o sistema.
+
+## Comandos uteis (desenvolvimento local)
+
+### Executar testes com pytest
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+### Execucao local sem Docker (opcional)
+
+API:
+
+```bash
+cd apps/api
+pip install -r requirements.txt
+uvicorn apps.api.main:app --reload --port 8000
+```
+
+Web:
+
 ```bash
 cd apps/web
 npm install
 npm run dev
 ```
 
-## Como subir API local
-```bash
-cd apps/api
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
+## Observabilidade
 
-## Como rodar testes de dominio e integracao
-```bash
-pip install -r requirements-dev.txt
-python -m pytest packages/domain/tests packages/application/tests -q
-```
+- `GET /health`: liveness check simples para runtime e balanceadores.
+- `GET /health/deep`: readiness check com validacao de conectividade ao banco.
 
-## Regras de Branch
-- main: release estavel
-- dev: desenvolvimento
-- teste: validacao paralela e experimentos
+## Estrutura do repositorio
+
+- `apps/api`: backend FastAPI
+- `apps/web`: frontend React + Vite
+- `packages`: camadas compartilhadas de dominio, aplicacao e infraestrutura
+- `docs`: documentacao funcional e tecnica
+
+## Handover
+
+Para apresentacao a stakeholders e transicao para infraestrutura:
+
+1. subir stack com `docker compose up -d --build`;
+2. validar `http://localhost:3000` e `http://localhost:3000/api/docs`;
+3. validar readiness em `http://localhost:8000/health/deep`.

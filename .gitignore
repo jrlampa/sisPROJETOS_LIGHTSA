@@ -60,3 +60,6 @@ htmlcov/
 *.asar
 out/
 release/
+
+# CAD temporary files at repository root
+/*.dxf
