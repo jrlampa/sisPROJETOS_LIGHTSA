@@ -3,25 +3,18 @@
 from __future__ import annotations
 
 import tempfile
-from collections.abc import Callable
 from pathlib import Path
 from uuid import UUID
 
 import ezdxf
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
+from apps.api.core.deps import get_session_factory
 from apps.api.core.security import require_write_access
 from apps.api.schemas.cad_schemas import ImportacaoDxfResponse
 from packages.application.use_cases.cad_use_cases import ImportarArquivoDxfUseCase
 
 router = APIRouter(tags=["cad"])
-
-
-def get_session_factory(request: Request) -> Callable[[], Session]:
-    """Obtém a fábrica de sessão configurada no estado da aplicação."""
-
-    return request.app.state.session_factory
 
 
 @router.post(
@@ -38,7 +31,7 @@ def get_session_factory(request: Request) -> Callable[[], Session]:
 def importar_dxf(
     projeto_id: UUID,
     file: UploadFile,
-    session_factory: Callable[[], Session] = Depends(get_session_factory),
+    session_factory=Depends(get_session_factory),
     _: object = Depends(require_write_access),
 ) -> ImportacaoDxfResponse:
     """Processa o upload, delega ao use case e retorna o sumário CAD."""

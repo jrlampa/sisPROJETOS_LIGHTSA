@@ -2,24 +2,21 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import ValidationError
-from sqlalchemy.orm import Session
 
+from apps.api.core.deps import get_session_factory
 from apps.api.core.security import require_write_access
-from apps.api.schemas.tracao_schemas import CalcularTracaoRequest, CalcularTracaoResponse, ResultadoTracaoDTO
+from apps.api.schemas.tracao_schemas import (
+    CalcularTracaoRequest,
+    CalcularTracaoResponse,
+    ResultadoTracaoDTO,
+)
 from packages.application.use_cases.tracao_use_cases import CalcularTracaoProjetoUseCase
 
 router = APIRouter(tags=["tracao"])
-
-
-def get_session_factory(request: Request) -> Callable[[], Session]:
-    """Obtem a fabrica de sessao configurada no estado da aplicacao."""
-
-    return request.app.state.session_factory
 
 
 @router.post(
@@ -30,7 +27,7 @@ def get_session_factory(request: Request) -> Callable[[], Session]:
 def calcular_tracao_projeto(
     projeto_id: UUID,
     payload: CalcularTracaoRequest,
-    session_factory: Callable[[], Session] = Depends(get_session_factory),
+    session_factory=Depends(get_session_factory),
     _: object = Depends(require_write_access),
 ) -> CalcularTracaoResponse:
     """Calcula e persiste os resultados mecanicos de tracao do projeto."""
@@ -45,7 +42,11 @@ def calcular_tracao_projeto(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except ValueError as exc:
         message = str(exc)
-        code = status.HTTP_404_NOT_FOUND if "nao encontrado" in message.lower() else status.HTTP_400_BAD_REQUEST
+        code = (
+            status.HTTP_404_NOT_FOUND
+            if "nao encontrado" in message.lower()
+            else status.HTTP_400_BAD_REQUEST
+        )
         raise HTTPException(status_code=code, detail=message) from exc
 
     return CalcularTracaoResponse(

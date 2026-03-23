@@ -16,10 +16,14 @@ class ExportadorFicheiros:
     """Gera ficheiros Excel, PDF e ZIP em diretório temporário."""
 
     def __init__(self, base_dir: str | None = None) -> None:
-        self._base_dir = Path(base_dir) if base_dir else Path(tempfile.mkdtemp(prefix="sisprojetos_export_"))
+        self._base_dir = (
+            Path(base_dir) if base_dir else Path(tempfile.mkdtemp(prefix="sisprojetos_export_"))
+        )
         self._base_dir.mkdir(parents=True, exist_ok=True)
 
-    def gerar_excel_padrao(self, projeto_id: UUID, dados_cqt: dict, dados_tracao: list[dict]) -> str:
+    def gerar_excel_padrao(
+        self, projeto_id: UUID, dados_cqt: dict, dados_tracao: list[dict]
+    ) -> str:
         """Cria um esqueleto de planilha para o pacote final de exportacao."""
         caminho = self._base_dir / f"{projeto_id}_relatorio_tecnico.xlsx"
 
@@ -62,7 +66,9 @@ class ExportadorFicheiros:
         """Compacta os ficheiros informados em um ZIP final de entrega."""
         caminho_zip = self._base_dir / f"{projeto_id}_pacote_final.zip"
 
-        with zipfile.ZipFile(caminho_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as arquivo_zip:
+        with zipfile.ZipFile(
+            caminho_zip, mode="w", compression=zipfile.ZIP_DEFLATED
+        ) as arquivo_zip:
             for caminho in lista_caminhos:
                 path = Path(caminho)
                 if path.exists():

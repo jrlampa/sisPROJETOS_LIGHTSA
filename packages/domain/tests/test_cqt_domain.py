@@ -6,12 +6,12 @@ import pytest
 from pydantic import ValidationError
 
 from packages.domain.cqt.models import (
-    CQTAnalise,
     CentroCarga,
     Condutor,
+    CQTAnalise,
     TipoRede,
-    TrechoEletrico,
     Transformador,
+    TrechoEletrico,
 )
 from packages.domain.intake.models import TipoProjeto
 
@@ -475,7 +475,9 @@ def test_cqt_normal_rejeita_leitura_maxima_sem_campos_completos() -> None:
         ),
     )
 
-    with pytest.raises(ValidationError, match="Leitura maxima do trafo exige corrente e carga maxima"):
+    with pytest.raises(
+        ValidationError, match="Leitura maxima do trafo exige corrente e carga maxima"
+    ):
         CQTAnalise(
             tipo_projeto=TipoProjeto.ROBUSTEZ_MT,
             centro_carga=centro,

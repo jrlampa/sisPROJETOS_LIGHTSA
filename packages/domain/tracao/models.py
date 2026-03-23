@@ -34,6 +34,7 @@ def utc_now() -> datetime:
 # Motor fisico — dados de entrada para calcular_polo do legacy_engine
 # ---------------------------------------------------------------------------
 
+
 class NivelTracao(str, Enum):
     """Identificador do nivel eletrico de uma travessia no poste."""
 
@@ -66,10 +67,14 @@ class TraversalFisica(BaseModel):
     tipo_cabo: str = ""
     vao_m: float = Field(ge=0, default=0.0, description="Comprimento do vao em metros.")
     flecha_m: float = Field(ge=0, default=0.0, description="Flecha do cabo em metros.")
-    angulo_graus: float = Field(ge=0, lt=360, default=0.0, description="Angulo de deflexao em graus.")
+    angulo_graus: float = Field(
+        ge=0, lt=360, default=0.0, description="Angulo de deflexao em graus."
+    )
     altura_poste_m: float = Field(ge=0, default=0.0)
     altura_ancoragem_m: float = Field(ge=0, default=0.0)
-    qtd_ligacoes: float = Field(ge=0, default=0.0, description="Quantidade de ligacoes (apenas BTZ).")
+    qtd_ligacoes: float = Field(
+        ge=0, default=0.0, description="Quantidade de ligacoes (apenas BTZ)."
+    )
     qtd_cabos: float = Field(ge=0, default=0.0, description="Quantidade de cabos (apenas RAL).")
 
     @model_validator(mode="after")
@@ -82,6 +87,7 @@ class TraversalFisica(BaseModel):
 # ---------------------------------------------------------------------------
 # Helper: delega ao legacy_engine com agrupamento por nivel/posicao
 # ---------------------------------------------------------------------------
+
 
 def _calcular_via_motor_legado(
     traversals: tuple[TraversalFisica, ...],
@@ -115,15 +121,17 @@ def _calcular_via_motor_legado(
         for pos in range(1, 5):
             t = _get(nivel, pos)
             if t:
-                result.append(MTTraversalInput(
-                    tipo_rede=t.tipo_rede,
-                    tipo_cabo=t.tipo_cabo,
-                    vao=t.vao_m,
-                    flecha=t.flecha_m,
-                    angulo=t.angulo_graus,
-                    altura_poste=t.altura_poste_m,
-                    altura_ancoragem=t.altura_ancoragem_m,
-                ))
+                result.append(
+                    MTTraversalInput(
+                        tipo_rede=t.tipo_rede,
+                        tipo_cabo=t.tipo_cabo,
+                        vao=t.vao_m,
+                        flecha=t.flecha_m,
+                        angulo=t.angulo_graus,
+                        altura_poste=t.altura_poste_m,
+                        altura_ancoragem=t.altura_ancoragem_m,
+                    )
+                )
             else:
                 result.append(MTTraversalInput())
         return result
@@ -133,15 +141,17 @@ def _calcular_via_motor_legado(
     for pos in range(1, 5):
         t = _get("BT", pos)
         if t:
-            bt_list.append(BTTraversalInput(
-                tipo_rede=t.tipo_rede,
-                tipo_cabo=t.tipo_cabo,
-                vao=t.vao_m,
-                flecha=t.flecha_m,
-                angulo=t.angulo_graus,
-                altura_poste=t.altura_poste_m,
-                altura_ancoragem=t.altura_ancoragem_m,
-            ))
+            bt_list.append(
+                BTTraversalInput(
+                    tipo_rede=t.tipo_rede,
+                    tipo_cabo=t.tipo_cabo,
+                    vao=t.vao_m,
+                    flecha=t.flecha_m,
+                    angulo=t.angulo_graus,
+                    altura_poste=t.altura_poste_m,
+                    altura_ancoragem=t.altura_ancoragem_m,
+                )
+            )
         else:
             bt_list.append(BTTraversalInput())
 
@@ -150,14 +160,16 @@ def _calcular_via_motor_legado(
     for pos in range(1, 5):
         t = _get("BTZ", pos)
         if t:
-            btz_list.append(BTZeroTraversalInput(
-                qtd_ligacoes=t.qtd_ligacoes,
-                vao=t.vao_m,
-                flecha=t.flecha_m,
-                angulo=t.angulo_graus,
-                altura_poste=t.altura_poste_m,
-                altura_ancoragem=t.altura_ancoragem_m,
-            ))
+            btz_list.append(
+                BTZeroTraversalInput(
+                    qtd_ligacoes=t.qtd_ligacoes,
+                    vao=t.vao_m,
+                    flecha=t.flecha_m,
+                    angulo=t.angulo_graus,
+                    altura_poste=t.altura_poste_m,
+                    altura_ancoragem=t.altura_ancoragem_m,
+                )
+            )
         else:
             btz_list.append(BTZeroTraversalInput())
 
@@ -166,15 +178,17 @@ def _calcular_via_motor_legado(
     for pos in range(1, 5):
         t = _get("RAL", pos)
         if t:
-            ral_list.append(RamaisTraversalInput(
-                tipo_cabo=t.tipo_cabo,
-                qtd_cabos=t.qtd_cabos,
-                vao=t.vao_m,
-                flecha=t.flecha_m,
-                angulo=t.angulo_graus,
-                altura_poste=t.altura_poste_m,
-                altura_ancoragem=t.altura_ancoragem_m,
-            ))
+            ral_list.append(
+                RamaisTraversalInput(
+                    tipo_cabo=t.tipo_cabo,
+                    qtd_cabos=t.qtd_cabos,
+                    vao=t.vao_m,
+                    flecha=t.flecha_m,
+                    angulo=t.angulo_graus,
+                    altura_poste=t.altura_poste_m,
+                    altura_ancoragem=t.altura_ancoragem_m,
+                )
+            )
         else:
             ral_list.append(RamaisTraversalInput())
 
@@ -193,6 +207,7 @@ def _calcular_via_motor_legado(
 # ---------------------------------------------------------------------------
 # EstadoMecanico
 # ---------------------------------------------------------------------------
+
 
 class EstadoMecanico(str, Enum):
     """Classificacao do carregamento mecanico de um poste.

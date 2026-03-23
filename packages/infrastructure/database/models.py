@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -69,7 +69,9 @@ class CQTAnaliseORM(Base):
     tipo_projeto: Mapped[str] = mapped_column(String(40), nullable=False)
     recuperacao_clandestino_confirmada: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     quantidade_ligacoes_irregulares: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    recebeu_leitura_trafo_maxima: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    recebeu_leitura_trafo_maxima: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
     corrente_trafo_a: Mapped[float | None] = mapped_column(Float, nullable=True)
     carga_maxima_transformador_kva: Mapped[float | None] = mapped_column(Float, nullable=True)
     limite_carregamento_trafo_percent: Mapped[float] = mapped_column(Float, nullable=False)
@@ -196,7 +198,11 @@ class ResultadoTracaoORM(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     poste_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("postes_tracao.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+        String(36),
+        ForeignKey("postes_tracao.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
     )
     esforco_resultante_daN: Mapped[float] = mapped_column(Float, nullable=False)
     percentual_carregamento: Mapped[float] = mapped_column(Float, nullable=False)
@@ -213,7 +219,11 @@ class PacoteEntregaORM(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     projeto_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("projetos.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+        String(36),
+        ForeignKey("projetos.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False)
     caminho_arquivo: Mapped[str | None] = mapped_column(String(500), nullable=True)

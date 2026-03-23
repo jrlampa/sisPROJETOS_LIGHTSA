@@ -9,11 +9,11 @@ from .projetos import router as projetos_router
 from .tracao import router as tracao_router
 
 __all__ = [
-	"auth_router",
-	"cad_router",
-	"cqt_router",
-	"exportacao_router",
-	"health_router",
-	"projetos_router",
-	"tracao_router",
+    "auth_router",
+    "cad_router",
+    "cqt_router",
+    "exportacao_router",
+    "health_router",
+    "projetos_router",
+    "tracao_router",
 ]

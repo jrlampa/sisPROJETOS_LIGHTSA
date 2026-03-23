@@ -9,7 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from apps.api.schemas.projeto_schemas import TipoProjetoDTO
-from packages.domain.cqt.models import CQTAnalise, CentroCarga, TrechoEletrico
+from packages.domain.cqt.models import CentroCarga, CQTAnalise, TrechoEletrico
 
 
 class TipoRedeDTO(str, Enum):
@@ -116,7 +116,10 @@ class CentroCargaDTO(BaseModel):
                     **centro.transformador.model_dump(mode="json"),
                     "fator_carga_percent": centro.transformador.fator_carga_percent,
                 },
-                "trechos": [TrechoEletricoDTO.from_domain(item).model_dump(mode="json") for item in centro.trechos],
+                "trechos": [
+                    TrechoEletricoDTO.from_domain(item).model_dump(mode="json")
+                    for item in centro.trechos
+                ],
                 "queda_total_percent": centro.queda_total_percent,
                 "possui_erro_02": centro.possui_erro_02,
             }
@@ -156,7 +159,9 @@ class CQTAnaliseResponse(BaseModel):
             {
                 "id": analise.id,
                 "tipo_projeto": analise.tipo_projeto.value,
-                "centro_carga": CentroCargaDTO.from_domain(analise.centro_carga).model_dump(mode="json"),
+                "centro_carga": CentroCargaDTO.from_domain(analise.centro_carga).model_dump(
+                    mode="json"
+                ),
                 "limite_carregamento_trafo_percent": analise.limite_carregamento_trafo_percent,
                 "trafo_dentro_do_limite": analise.trafo_dentro_do_limite,
                 "qdt_total_dentro_do_limite": analise.qdt_total_dentro_do_limite,

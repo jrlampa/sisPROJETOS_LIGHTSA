@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from apps.api.core.deps import get_session_factory
 from apps.api.core.security import require_write_access
 from apps.api.schemas.projeto_schemas import (
     AvancarEtapaRequest,
@@ -27,16 +26,10 @@ router = APIRouter(prefix="/projetos", tags=["projetos"])
 logger = logging.getLogger(__name__)
 
 
-def get_session_factory(request: Request) -> Callable[[], Session]:
-    """Obtém a fabrica de sessão configurada no estado da aplicação."""
-
-    return request.app.state.session_factory
-
-
 @router.post("/", response_model=ProjetoResponse, status_code=status.HTTP_201_CREATED)
 def criar_projeto(
     payload: ProjetoCreateRequest,
-    session_factory: Callable[[], Session] = Depends(get_session_factory),
+    session_factory=Depends(get_session_factory),
     _: object = Depends(require_write_access),
 ) -> ProjetoResponse:
     """Cria um projeto validando regras de dominio via caso de uso."""
@@ -55,7 +48,7 @@ def criar_projeto(
 def avancar_etapa(
     projeto_id: UUID,
     payload: AvancarEtapaRequest,
-    session_factory: Callable[[], Session] = Depends(get_session_factory),
+    session_factory=Depends(get_session_factory),
     _: object = Depends(require_write_access),
 ) -> AvancarEtapaResponse:
     """Avança a etapa do projeto e registra evento de auditoria."""
@@ -70,7 +63,11 @@ def avancar_etapa(
         )
     except ValueError as exc:
         message = str(exc)
-        code = status.HTTP_404_NOT_FOUND if "nao encontrado" in message.lower() else status.HTTP_400_BAD_REQUEST
+        code = (
+            status.HTTP_404_NOT_FOUND
+            if "nao encontrado" in message.lower()
+            else status.HTTP_400_BAD_REQUEST
+        )
         raise HTTPException(status_code=code, detail=message) from exc
 
     return AvancarEtapaResponse(

@@ -9,9 +9,9 @@ from sqlalchemy.orm import Session
 
 from packages.domain.cqt.models import CQTAnalise
 from packages.infrastructure.database.models import (
-    CQTAnaliseORM,
     CentroCargaORM,
     CondutorORM,
+    CQTAnaliseORM,
     ProjetoORM,
     TransformadorORM,
     TrechoEletricoORM,

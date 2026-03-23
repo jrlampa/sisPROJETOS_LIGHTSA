@@ -102,9 +102,9 @@ def test_calcular_tracao_projeto_persiste_tres_postes_e_resultados() -> None:
 
     with session_factory() as session:
         postes = session.scalars(select(PosteTracaoORM).order_by(PosteTracaoORM.codigo)).all()
-        persisted = (
-            session.scalars(select(ResultadoTracaoORM).join(PosteTracaoORM).order_by(PosteTracaoORM.codigo)).all()
-        )
+        persisted = session.scalars(
+            select(ResultadoTracaoORM).join(PosteTracaoORM).order_by(PosteTracaoORM.codigo)
+        ).all()
 
     assert len(postes) == 3
     assert len(persisted) == 3

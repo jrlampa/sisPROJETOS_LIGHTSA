@@ -11,7 +11,6 @@ from packages.domain.intake.models import Projeto
 from packages.domain.workflow.models import EtapaProjeto, HistoricoAuditoria
 from packages.infrastructure.repositories.projeto_repository import ProjetoRepository
 
-
 TRANSICOES_VALIDAS: dict[EtapaProjeto, set[EtapaProjeto]] = {
     EtapaProjeto.TRIAGEM: {EtapaProjeto.CQT},
     EtapaProjeto.CQT: {EtapaProjeto.CAD},

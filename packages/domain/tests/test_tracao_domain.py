@@ -16,7 +16,6 @@ from packages.domain.tracao.models import (
     Vao,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
@@ -195,7 +194,9 @@ def test_resultado_tracao_agrega_dados_do_poste() -> None:
 
     assert resultado.poste is poste
     assert resultado.esforco_resultante_daN == pytest.approx(poste.esforco_resultante_daN, rel=1e-9)
-    assert resultado.percentual_carregamento == pytest.approx(poste.percentual_carregamento, rel=1e-9)
+    assert resultado.percentual_carregamento == pytest.approx(
+        poste.percentual_carregamento, rel=1e-9
+    )
     assert resultado.estado_mecanico is poste.estado_mecanico
     assert resultado.calculado_em is not None
 
@@ -402,7 +403,7 @@ def test_motor_fisico_traversal_sem_vao_requer_apenas_ancoragem() -> None:
         tipo_cabo="70mm\u00b2, MTX-BT ",
         altura_ancoragem_m=7.0,
     )
-    assert t.vao_m == 0.0   # sentinela: geometria herdada do nivel MT1
+    assert t.vao_m == 0.0  # sentinela: geometria herdada do nivel MT1
     assert t.flecha_m == 0.0
 
 

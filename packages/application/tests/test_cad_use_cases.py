@@ -14,7 +14,6 @@ from packages.application.use_cases.projeto_use_cases import CriarProjetoUseCase
 from packages.infrastructure.database.models import Base, GeometriaProjetoORM
 from packages.infrastructure.database.session import build_engine, create_session_factory
 
-
 # ---------------------------------------------------------------------------
 # Helpers de infraestrutura de teste
 # ---------------------------------------------------------------------------
@@ -85,10 +84,12 @@ def test_importar_dxf_persiste_geometria_no_banco():
     projeto_id: UUID = projeto.id
 
     # Cria DXF temporario com dois segmentos (triangulo 3-4-5 e segmento reto)
-    tmp_path = _criar_dxf_temporario([
-        ((0.0, 0.0, 0.0), (3.0, 4.0, 0.0)),   # comprimento XY = 5.0
-        ((10.0, 0.0, 0.0), (10.0, 10.0, 0.0)), # comprimento XY = 10.0
-    ])
+    tmp_path = _criar_dxf_temporario(
+        [
+            ((0.0, 0.0, 0.0), (3.0, 4.0, 0.0)),  # comprimento XY = 5.0
+            ((10.0, 0.0, 0.0), (10.0, 10.0, 0.0)),  # comprimento XY = 10.0
+        ]
+    )
 
     try:
         use_case = ImportarArquivoDxfUseCase(session_factory)
@@ -99,17 +100,17 @@ def test_importar_dxf_persiste_geometria_no_banco():
 
         # Banco: deve existir exatamente um registro vinculado ao projeto
         with session_factory() as session:
-            orm = session.query(GeometriaProjetoORM).filter_by(
-                projeto_id=str(projeto_id)
-            ).one_or_none()
+            orm = (
+                session.query(GeometriaProjetoORM)
+                .filter_by(projeto_id=str(projeto_id))
+                .one_or_none()
+            )
 
             assert orm is not None, "GeometriaProjetoORM nao foi persistida."
             assert orm.nome_arquivo.endswith(".dxf")
             assert isinstance(orm.dados_geometria, list)
             # A layer default do ezdxf e '0', que e normalizada para 'DXF_0'
-            total_segmentos = sum(
-                len(geom["segmentos"]) for geom in orm.dados_geometria
-            )
+            total_segmentos = sum(len(geom["segmentos"]) for geom in orm.dados_geometria)
             assert total_segmentos == 2
     finally:
         os.unlink(tmp_path)
@@ -160,13 +161,12 @@ def test_importar_dxf_falha_para_projeto_inexistente():
     session_factory = _setup_in_memory_session_factory()
 
     from uuid import uuid4
+
     projeto_id_inexistente = uuid4()
 
     tmp_path = _criar_dxf_temporario([((0, 0, 0), (1, 1, 0))])
     try:
         with pytest.raises(ValueError, match="Projeto nao encontrado"):
-            ImportarArquivoDxfUseCase(session_factory).executar(
-                projeto_id_inexistente, tmp_path
-            )
+            ImportarArquivoDxfUseCase(session_factory).executar(projeto_id_inexistente, tmp_path)
     finally:
         os.unlink(tmp_path)

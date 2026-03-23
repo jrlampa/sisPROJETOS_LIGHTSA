@@ -7,9 +7,9 @@ from .projeto_repository import ProjetoRepository
 from .tracao_repository import TracaoRepository
 
 __all__ = [
-	"CADRepository",
-	"CQTRepository",
-	"ExportacaoRepository",
-	"ProjetoRepository",
-	"TracaoRepository",
+    "CADRepository",
+    "CQTRepository",
+    "ExportacaoRepository",
+    "ProjetoRepository",
+    "TracaoRepository",
 ]

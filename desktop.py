@@ -15,7 +15,6 @@ from pystray import Icon, Menu, MenuItem
 
 from apps.api.core.logger import setup_file_logging
 
-
 logger = logging.getLogger(__name__)
 WINDOW_TITLE = "sisPROJETOS LIGHT S.A."
 WINDOW_URL = "http://localhost:8000"
@@ -72,7 +71,9 @@ class DesktopRuntime:
                 try:
                     method()
                 except Exception:  # noqa: BLE001
-                    logger.debug("Falha ao executar metodo de foco da janela: %s", method_name, exc_info=True)
+                    logger.debug(
+                        "Falha ao executar metodo de foco da janela: %s", method_name, exc_info=True
+                    )
 
     def _on_open_menu(self, icon: Icon, item: MenuItem) -> None:
         del icon, item
@@ -149,14 +150,18 @@ class DesktopRuntime:
         log_path = setup_file_logging()
         logger.info("Logging desktop configurado em: %s", log_path)
 
-        self.api_thread = threading.Thread(target=self._run_api, name="sisprojetos-api", daemon=True)
+        self.api_thread = threading.Thread(
+            target=self._run_api, name="sisprojetos-api", daemon=True
+        )
         self.api_thread.start()
         self._wait_for_api("127.0.0.1", 8000)
 
         self.window = webview.create_window(WINDOW_TITLE, WINDOW_URL)
         self.window.events.closing += self._on_window_closing
 
-        tray_thread = threading.Thread(target=self._start_system_tray, name="sisprojetos-tray", daemon=True)
+        tray_thread = threading.Thread(
+            target=self._start_system_tray, name="sisprojetos-tray", daemon=True
+        )
         tray_thread.start()
 
         logger.info("Abrindo janela nativa...")

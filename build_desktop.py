@@ -10,7 +10,6 @@ import sys
 import time
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parent
 WEB_DIST_DIR = ROOT_DIR / "apps" / "web" / "dist"
 OUTPUT_DIR = ROOT_DIR / "Output"
@@ -88,7 +87,9 @@ def obfuscate_domain() -> None:
     )
 
     if not OBFUSCATED_DOMAIN_DIR.exists() or not OBFUSCATED_DOMAIN_DIR.is_dir():
-        raise RuntimeError("PyArmor nao gerou o dominio obfuscado em dist_obfuscated/packages/domain.")
+        raise RuntimeError(
+            "PyArmor nao gerou o dominio obfuscado em dist_obfuscated/packages/domain."
+        )
 
     LOGGER.info("Dominio obfuscado com sucesso em: %s", OBFUSCATED_DOMAIN_DIR)
 
@@ -99,7 +100,9 @@ def build_executable() -> None:
     _safe_rmtree(PYI_DIST_DIR / "sisPROJETOS")
     _safe_rmtree(PYI_WORK_DIR)
     if not OBFUSCATED_DOMAIN_DIR.exists():
-        raise RuntimeError("Dominio obfuscado nao encontrado. Execute a etapa de obfuscacao antes do PyInstaller.")
+        raise RuntimeError(
+            "Dominio obfuscado nao encontrado. Execute a etapa de obfuscacao antes do PyInstaller."
+        )
 
     add_data = f"apps/web/dist{os.pathsep}apps/web/dist"
     add_version_file = f"VERSION{os.pathsep}."
@@ -144,7 +147,9 @@ def build_executable() -> None:
     exe_path = PYI_DIST_DIR / "sisPROJETOS.exe"
     folder_path = PYI_DIST_DIR / "sisPROJETOS"
     if not exe_path.exists() and not folder_path.exists():
-        raise RuntimeError("PyInstaller terminou sem gerar dist_desktop/sisPROJETOS.exe ou dist_desktop/sisPROJETOS/.")
+        raise RuntimeError(
+            "PyInstaller terminou sem gerar dist_desktop/sisPROJETOS.exe ou dist_desktop/sisPROJETOS/."
+        )
 
     if exe_path.exists():
         LOGGER.info("Executavel gerado: %s", exe_path)
