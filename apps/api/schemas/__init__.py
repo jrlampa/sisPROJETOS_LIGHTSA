@@ -22,6 +22,11 @@ from .projeto_schemas import (
     TipoEvidenciaDTO,
     TipoProjetoDTO,
 )
+from .exportacao_schemas import (
+    GerarPacoteResponse,
+    PacoteEntregaDTO,
+    StatusExportacaoDTO,
+)
 from .tracao_schemas import (
     CalcularTracaoRequest,
     CalcularTracaoResponse,
@@ -50,6 +55,9 @@ __all__ = [
     "ProjetoResponse",
     "TipoEvidenciaDTO",
     "TipoProjetoDTO",
+    "GerarPacoteResponse",
+    "PacoteEntregaDTO",
+    "StatusExportacaoDTO",
     "CalcularTracaoRequest",
     "CalcularTracaoResponse",
     "PosteBrutoDTO",
