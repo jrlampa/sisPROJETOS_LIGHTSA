@@ -73,11 +73,11 @@ def payload_tracao() -> dict:
 def test_post_projeto_tracao_retorna_estados_mecanicos_corretos() -> None:
     client = build_client()
 
-    projeto_resp = client.post("/projetos/", json=payload_projeto())
+    projeto_resp = client.post("/api/projetos/", json=payload_projeto())
     assert projeto_resp.status_code == 201
     projeto_id = projeto_resp.json()["id"]
 
-    response = client.post(f"/projetos/{projeto_id}/tracao", json=payload_tracao())
+    response = client.post(f"/api/projetos/{projeto_id}/tracao", json=payload_tracao())
 
     assert response.status_code == 200
     body = response.json()

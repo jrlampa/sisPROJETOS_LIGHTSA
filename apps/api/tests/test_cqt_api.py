@@ -97,10 +97,10 @@ def payload_cqt_golden_case() -> dict:
 
 def test_post_projeto_cqt_retorna_calculos() -> None:
     client = build_client()
-    projeto_resp = client.post("/projetos/", json=payload_projeto())
+    projeto_resp = client.post("/api/projetos/", json=payload_projeto())
     projeto_id = projeto_resp.json()["id"]
 
-    response = client.post(f"/projetos/{projeto_id}/cqt", json=payload_cqt_golden_case())
+    response = client.post(f"/api/projetos/{projeto_id}/cqt", json=payload_cqt_golden_case())
 
     assert response.status_code == 201
     body = response.json()
@@ -113,7 +113,7 @@ def test_post_projeto_cqt_retorna_calculos() -> None:
 def test_post_projeto_cqt_retorna_404_para_projeto_inexistente() -> None:
     client = build_client()
     response = client.post(
-        "/projetos/11111111-1111-1111-1111-111111111111/cqt",
+        "/api/projetos/11111111-1111-1111-1111-111111111111/cqt",
         json=payload_cqt_golden_case(),
     )
 
@@ -122,12 +122,12 @@ def test_post_projeto_cqt_retorna_404_para_projeto_inexistente() -> None:
 
 def test_post_projeto_cqt_retorna_400_quando_payload_invalido() -> None:
     client = build_client()
-    projeto_resp = client.post("/projetos/", json=payload_projeto())
+    projeto_resp = client.post("/api/projetos/", json=payload_projeto())
     projeto_id = projeto_resp.json()["id"]
 
     payload = payload_cqt_golden_case()
     payload["centro_carga"]["trechos"][0]["corrente_a"] = 1000.0
 
-    response = client.post(f"/projetos/{projeto_id}/cqt", json=payload)
+    response = client.post(f"/api/projetos/{projeto_id}/cqt", json=payload)
 
     assert response.status_code == 400

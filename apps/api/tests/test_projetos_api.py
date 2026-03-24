@@ -42,7 +42,7 @@ def payload_projeto() -> dict:
 def test_post_projetos_cria_projeto_com_sucesso() -> None:
     client = build_client()
 
-    response = client.post("/projetos/", json=payload_projeto())
+    response = client.post("/api/projetos/", json=payload_projeto())
 
     assert response.status_code == 201
     body = response.json()
@@ -55,18 +55,18 @@ def test_post_projetos_falha_com_tipo_invalido() -> None:
     payload = payload_projeto()
     payload["checklist_triagem"]["tipo_projeto"] = "Tipo Invalido"
 
-    response = client.post("/projetos/", json=payload)
+    response = client.post("/api/projetos/", json=payload)
 
     assert response.status_code == 422
 
 
 def test_patch_projeto_avanca_etapa_para_cqt() -> None:
     client = build_client()
-    criado = client.post("/projetos/", json=payload_projeto())
+    criado = client.post("/api/projetos/", json=payload_projeto())
     projeto_id = criado.json()["id"]
 
     response = client.patch(
-        f"/projetos/{projeto_id}/etapa",
+        f"/api/projetos/{projeto_id}/etapa",
         json={
             "nova_etapa": "CQT",
             "responsavel": "Equipe Engenharia",
@@ -82,11 +82,11 @@ def test_patch_projeto_avanca_etapa_para_cqt() -> None:
 
 def test_patch_projeto_falha_quando_tenta_pular_etapa() -> None:
     client = build_client()
-    criado = client.post("/projetos/", json=payload_projeto())
+    criado = client.post("/api/projetos/", json=payload_projeto())
     projeto_id = criado.json()["id"]
 
     response = client.patch(
-        f"/projetos/{projeto_id}/etapa",
+        f"/api/projetos/{projeto_id}/etapa",
         json={
             "nova_etapa": "CAD",
             "responsavel": "Equipe Engenharia",

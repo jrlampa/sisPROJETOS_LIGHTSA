@@ -101,22 +101,22 @@ def payload_tracao() -> dict:
 def test_post_gerar_e_get_download_pacote_exportacao() -> None:
     client = build_client()
 
-    projeto_resp = client.post("/projetos/", json=payload_projeto())
+    projeto_resp = client.post("/api/projetos/", json=payload_projeto())
     assert projeto_resp.status_code == 201
     projeto_id = projeto_resp.json()["id"]
 
-    cqt_resp = client.post(f"/projetos/{projeto_id}/cqt", json=payload_cqt())
+    cqt_resp = client.post(f"/api/projetos/{projeto_id}/cqt", json=payload_cqt())
     assert cqt_resp.status_code == 201
 
-    tracao_resp = client.post(f"/projetos/{projeto_id}/tracao", json=payload_tracao())
+    tracao_resp = client.post(f"/api/projetos/{projeto_id}/tracao", json=payload_tracao())
     assert tracao_resp.status_code == 200
 
-    gerar_resp = client.post(f"/projetos/{projeto_id}/exportacao/gerar")
+    gerar_resp = client.post(f"/api/projetos/{projeto_id}/exportacao/gerar")
     assert gerar_resp.status_code == 200
     pacote = gerar_resp.json()["pacote"]
     assert pacote["status"] == "CONCLUIDO"
 
-    download_resp = client.get(f"/projetos/{projeto_id}/exportacao/download")
+    download_resp = client.get(f"/api/projetos/{projeto_id}/exportacao/download")
     assert download_resp.status_code == 200
     assert download_resp.headers["content-type"].startswith("application/zip")
 
