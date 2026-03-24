@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import csv
 import math
 import re
@@ -20,12 +21,13 @@ from packages.domain.tests.excel_parity_support import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-TARGET_DIR = Path(
+DEFAULT_TARGET_DIR = Path(
     r"C:\Users\jonat\OneDrive - IM3 Brasil\LIGHT\PROJETOS\REDE CLANDESTINA - RUAS JERUSALÉM E UVA - SANTA CRUZ RJ"
 )
-REPORT_PATH = PROJECT_ROOT / "legacy_audit_report_cqt.csv"
+DEFAULT_REPORT_PATH = PROJECT_ROOT / "legacy_audit_report_cqt.csv"
 REL_TOL = 0.0001
 QDT_LIMIT_PERCENT = 5.0
+INVALID_FORMAT_STATUS = "Ignorado - Formato Invalido"
 
 
 def _load_workbook_with_copy(path: Path):
@@ -124,6 +126,19 @@ def _collect_human_errors_from_sheet(ws) -> list[str]:
     return errors
 
 
+def _is_invalid_format_exception(exc: BaseException) -> bool:
+    message = str(exc).lower()
+    invalid_signatures = (
+        "nenhuma aba de cqt encontrada",
+        "nao foi possivel localizar cabecalho principal de cqt",
+        "nao foi possivel mapear colunas essenciais de cqt",
+        "nenhum trecho cqt foi extraido",
+        "zip file",
+        "file is not a zip file",
+    )
+    return any(signature in message for signature in invalid_signatures)
+
+
 def _audit_file(workbook_path: Path) -> dict[str, str]:
     result = {
         "Arquivo": str(workbook_path),
@@ -202,7 +217,11 @@ def _audit_file(workbook_path: Path) -> dict[str, str]:
     except ValidationError as exc:
         result["Erros Humanos Detectados"] = f"Falha de validacao: {exc}"
     except BaseException as exc:
-        result["Erros Humanos Detectados"] = f"Falha de processamento: {exc}"
+        if _is_invalid_format_exception(exc):
+            result["Status Paridade"] = INVALID_FORMAT_STATUS
+            result["Erros Humanos Detectados"] = f"Formato invalido: {exc}"
+        else:
+            result["Erros Humanos Detectados"] = f"Falha de processamento: {exc}"
     finally:
         if wb is not None:
             wb.close()
@@ -215,15 +234,29 @@ def _audit_file(workbook_path: Path) -> dict[str, str]:
     return result
 
 
-def main() -> int:
-    files = sorted(TARGET_DIR.rglob("QDT*.xlsm"))
+def run_audit(target_dir: Path, report_path: Path) -> list[dict[str, str]]:
+    files = sorted(target_dir.rglob("QDT*.xlsm"))
     if not files:
-        print(f"Nenhum arquivo QDT*.xlsm encontrado em: {TARGET_DIR}")
-        return 1
+        print(f"Nenhum arquivo QDT*.xlsm encontrado em: {target_dir}")
+        return []
 
-    rows = [_audit_file(path) for path in files]
+    rows = []
+    for path in files:
+        try:
+            rows.append(_audit_file(path))
+        except BaseException as exc:
+            rows.append(
+                {
+                    "Arquivo": str(path),
+                    "Status Paridade": "ERRO_PROCESSAMENTO",
+                    "Erros Humanos Detectados": f"Falha de processamento no loop: {exc}",
+                    "Queda Max Python": "",
+                    "Queda Max Excel": "",
+                    "Divergência": "",
+                }
+            )
 
-    with REPORT_PATH.open("w", newline="", encoding="utf-8") as csvfile:
+    with report_path.open("w", newline="", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(
             csvfile,
             fieldnames=[
@@ -241,6 +274,7 @@ def main() -> int:
     total = len(rows)
     parity_ok = sum(1 for row in rows if row["Status Paridade"] == "OK")
     parity_div = sum(1 for row in rows if row["Status Paridade"].startswith("DIVERGENTE"))
+    ignored_invalid = sum(1 for row in rows if row["Status Paridade"] == INVALID_FORMAT_STATUS)
     proc_error = sum(1 for row in rows if row["Status Paridade"] == "ERRO_PROCESSAMENTO")
     human_error = sum(
         1
@@ -249,13 +283,41 @@ def main() -> int:
     )
 
     print("Auditoria CQT legado concluida")
-    print(f"- Diretorio auditado: {TARGET_DIR}")
+    print(f"- Diretorio auditado: {target_dir}")
     print(f"- Arquivos processados: {total}")
     print(f"- Paridade OK: {parity_ok}")
     print(f"- Paridade divergente: {parity_div}")
+    print(f"- Ignorados por formato invalido: {ignored_invalid}")
     print(f"- Erro de processamento: {proc_error}")
     print(f"- Com erros humanos detectados: {human_error}")
-    print(f"- Relatorio: {REPORT_PATH}")
+    print(f"- Relatorio: {report_path}")
+
+    return rows
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Audita planilhas QDT*.xlsm legadas de CQT com resiliencia."
+    )
+    parser.add_argument(
+        "target_dir",
+        nargs="?",
+        default=str(DEFAULT_TARGET_DIR),
+        help="Diretorio raiz para varredura de arquivos QDT*.xlsm.",
+    )
+    parser.add_argument(
+        "--report",
+        default=str(DEFAULT_REPORT_PATH),
+        help="Caminho do CSV de saida.",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = _parse_args()
+    target_dir = Path(args.target_dir)
+    report_path = Path(args.report)
+    run_audit(target_dir=target_dir, report_path=report_path)
 
     return 0
 

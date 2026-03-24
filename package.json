@@ -13,7 +13,8 @@
     "check-parity": "python -m pytest packages/domain/tests/test_excel_parity.py --no-cov",
     "test:parity": "python -m pytest packages/domain/tests/test_excel_parity.py --no-cov -v",
     "audit:legacy": "python -m scripts.audit_legacy_tracao",
-    "audit:legacy:cqt": "python -m scripts.audit_legacy_cqt"
+    "audit:legacy:cqt": "python -m scripts.audit_legacy_cqt",
+    "audit:global": "python -m scripts.audit_global \"C:\\Users\\jonat\\OneDrive - IM3 Brasil\\LIGHT\\PROJETOS\""
   },
   "repository": {
     "type": "git",
