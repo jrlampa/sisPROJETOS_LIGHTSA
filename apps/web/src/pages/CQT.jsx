@@ -14,22 +14,22 @@ export function CQT() {
   const { projetoAtivo } = useProjectStore();
   const { obterLinhasCqt, salvarLinhasCqt } = useGridStore();
   const [abaAtiva, setAbaAtiva] = useState("esquerdo");
-  const [estadoEsquerdo, setEstadoEsquerdo] = useState(() => criarEstadoLadoInicial(projetoAtivo));
-  const [estadoDireito, setEstadoDireito] = useState(() => criarEstadoLadoInicial(projetoAtivo));
+  const [estadoEsquerdo, setEstadoEsquerdo] = useState(() => criarEstadoLadoInicial());
+  const [estadoDireito, setEstadoDireito] = useState(() => criarEstadoLadoInicial());
   const fileInputRef = useRef(null);
   const projetoId = projetoAtivo?.id || null;
 
   useEffect(() => {
     if (!projetoId) return;
-    const estadoSalvo = obterLinhasCqt(projetoId, () => ({ esquerdo: criarEstadoLadoInicial(projetoAtivo), direito: criarEstadoLadoInicial(projetoAtivo) }));
+    const estadoSalvo = obterLinhasCqt(projetoId, () => ({ esquerdo: criarEstadoLadoInicial(), direito: criarEstadoLadoInicial() }));
     if (Array.isArray(estadoSalvo)) {
-      setEstadoEsquerdo(normalizarEstadoLado(estadoSalvo, projetoAtivo));
-      setEstadoDireito(criarEstadoLadoInicial(projetoAtivo));
+      setEstadoEsquerdo(normalizarEstadoLado(estadoSalvo));
+      setEstadoDireito(criarEstadoLadoInicial());
       return;
     }
-    setEstadoEsquerdo(normalizarEstadoLado(estadoSalvo?.esquerdo, projetoAtivo));
-    setEstadoDireito(normalizarEstadoLado(estadoSalvo?.direito, projetoAtivo));
-  }, [obterLinhasCqt, projetoAtivo, projetoId]);
+    setEstadoEsquerdo(normalizarEstadoLado(estadoSalvo?.esquerdo));
+    setEstadoDireito(normalizarEstadoLado(estadoSalvo?.direito));
+  }, [obterLinhasCqt, projetoId]);
 
   useEffect(() => {
     if (!projetoId) return;
@@ -61,8 +61,8 @@ export function CQT() {
       return response.data;
     },
     onSuccess: (estadoImportado) => {
-      setEstadoEsquerdo(normalizarEstadoLado(estadoImportado?.esquerdo, projetoAtivo));
-      setEstadoDireito(normalizarEstadoLado(estadoImportado?.direito, projetoAtivo));
+      setEstadoEsquerdo(normalizarEstadoLado(estadoImportado?.esquerdo));
+      setEstadoDireito(normalizarEstadoLado(estadoImportado?.direito));
       setAbaAtiva("esquerdo");
     },
   });
@@ -79,8 +79,8 @@ export function CQT() {
   };
 
   const limparLados = () => {
-    setEstadoEsquerdo(criarEstadoLadoInicial(projetoAtivo));
-    setEstadoDireito(criarEstadoLadoInicial(projetoAtivo));
+    setEstadoEsquerdo(criarEstadoLadoInicial());
+    setEstadoDireito(criarEstadoLadoInicial());
     setAbaAtiva("esquerdo");
   };
 
@@ -108,10 +108,10 @@ export function CQT() {
       <input ref={fileInputRef} type="file" accept=".xlsm,.xlsx" style={{ display: "none" }} onChange={aoSelecionarArquivo} />
 
       <div className="excel-tabs legacy-sheet-tabs">
-        <button type="button" className={`excel-tab ${abaAtiva === "esquerdo" ? "excel-tab-active" : ""}`} onClick={() => setAbaAtiva("esquerdo")}>LADO ESQUERDO</button>
-        <button type="button" className={`excel-tab ${abaAtiva === "direito" ? "excel-tab-active" : ""}`} onClick={() => setAbaAtiva("direito")}>LADO DIREITO</button>
+        <button type="button" className={`excel-tab ${abaAtiva === "esquerdo" ? "excel-tab-active" : ""}`} onClick={() => setAbaAtiva("esquerdo")}>QDT ESQUERDO (LADO2)</button>
+        <button type="button" className={`excel-tab ${abaAtiva === "direito" ? "excel-tab-active" : ""}`} onClick={() => setAbaAtiva("direito")}>QDT DIREITO (LADO1)</button>
       </div>
-      <LegacyExcelHeader dadosCabecalho={ladoAtivo.cabecalho} onChangeCampo={atualizarCabecalho} tituloAba={abaAtiva === "esquerdo" ? "QDT LADO 2 (ESQUERDO)" : "QDT LADO 1 (DIREITO)"} />
+      <LegacyExcelHeader dadosCabecalho={ladoAtivo.cabecalho} onChangeCampo={atualizarCabecalho} />
       <LegacyExcelGrid
         dados={ladoAtivo}
         totalQueda={totalQueda}

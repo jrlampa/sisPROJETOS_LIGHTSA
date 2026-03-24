@@ -1,105 +1,105 @@
-export function LegacyExcelHeader({ dadosCabecalho, onChangeCampo, tituloAba }) {
+export function LegacyExcelHeader({ dadosCabecalho, onChangeCampo }) {
   return (
     <div className="legacy-header-wrap">
-      <table className="excel-table legacy-title-table">
+      <table className="excel-table legacy-header-title">
         <tbody>
           <tr>
-            <td className="legacy-brand-left">LIGHT - SERVIÇOS DE ELETRICIDADE S.A.</td>
-            <td className="legacy-title-main">CÁLCULO DA QUEDA DE TENSÃO E ESFORÇOS MECÂNICOS</td>
-            <td className="legacy-brand-right">{tituloAba}</td>
+            <td className="legacy-header-company">Light S.E.S.A. DDE - Engenharia da Distribuição</td>
           </tr>
         </tbody>
       </table>
 
       <table className="excel-table legacy-header-grid">
-        <thead>
-          <tr>
-            <th className="excel-th-dark" colSpan={8}>
-              DADOS DO PROJETO
-            </th>
-            <th className="excel-th-dark" colSpan={8}>
-              CARACTERÍSTICAS DA REDE
-            </th>
-          </tr>
-        </thead>
         <tbody>
           <tr>
-            <th className="excel-th-light legacy-row-label">Projeto</th>
-            <td className="excel-td" colSpan={3}>
-              <input
-                className="excel-input"
-                value={dadosCabecalho.nomeProjeto}
-                onChange={(e) => onChangeCampo("nomeProjeto", e.target.value)}
-              />
-            </td>
-            <th className="excel-th-light legacy-row-label">Projetista</th>
-            <td className="excel-td" colSpan={3}>
-              <input
-                className="excel-input"
-                value={dadosCabecalho.projetista}
-                onChange={(e) => onChangeCampo("projetista", e.target.value)}
-              />
-            </td>
-            <th className="excel-th-light legacy-row-label">Tensão [V]</th>
-            <td className="excel-td" colSpan={3}>
-              <input
-                className="excel-input"
-                value={dadosCabecalho.tensao}
-                onChange={(e) => onChangeCampo("tensao", e.target.value)}
-              />
-            </td>
-            <th className="excel-th-light legacy-row-label">Fator de Potência</th>
+            <th className="excel-th-dark" colSpan={3}>
+              TRAFO ESTAÇÃO "AT-MT"
+            </th>
+            <td colSpan={1} />
+            <th className="excel-th-dark" colSpan={2}>
+              CIRCUITO DE M.T.
+            </th>
+          </tr>
+          <tr>
+            <th className="excel-th-light">Potência</th>
+            <th className="excel-th-light">Impedância</th>
+            <th className="excel-th-light">Tensão</th>
+            <td />
+            <th className="excel-th-light">Circuito</th>
+            <th className="excel-th-light">Lance</th>
+          </tr>
+          <tr>
+            <th className="excel-th-light">[ MVA ]</th>
+            <th className="excel-th-light">Z %</th>
+            <th className="excel-th-light">[ kV ]</th>
+            <td />
+            <th className="excel-th-light">Carregamento</th>
+            <td />
+          </tr>
+          <tr>
             <td className="excel-td">
               <input
                 className="excel-input"
-                value={dadosCabecalho.fatorPotencia}
-                onChange={(e) => onChangeCampo("fatorPotencia", e.target.value)}
+                value={dadosCabecalho.trafoMva}
+                onChange={(e) => onChangeCampo("trafoMva", e.target.value)}
+                placeholder="40"
               />
             </td>
-            <th className="excel-th-light legacy-row-label">Condutores</th>
-            <td className="excel-td" colSpan={2}>
+            <td className="excel-td">
               <input
                 className="excel-input"
-                value={dadosCabecalho.condutores}
-                onChange={(e) => onChangeCampo("condutores", e.target.value)}
+                value={dadosCabecalho.impedanciaZ}
+                onChange={(e) => onChangeCampo("impedanciaZ", e.target.value)}
+                placeholder="20"
+              />
+            </td>
+            <td className="excel-td">
+              <input
+                className="excel-input"
+                value={dadosCabecalho.tensaoKv}
+                onChange={(e) => onChangeCampo("tensaoKv", e.target.value)}
+                placeholder="13.2"
+              />
+            </td>
+            <td />
+            <td className="excel-td">
+              <input
+                className="excel-input"
+                value={dadosCabecalho.circuito}
+                onChange={(e) => onChangeCampo("circuito", e.target.value)}
+                placeholder="53 SC - MT - A"
+              />
+            </td>
+            <td className="excel-td">
+              <input
+                className="excel-input"
+                value={dadosCabecalho.lanceCqt}
+                onChange={(e) => onChangeCampo("lanceCqt", e.target.value)}
+                placeholder="2"
               />
             </td>
           </tr>
+          <tr style={{ height: "6px" }}>
+            <td colSpan={6} />
+          </tr>
           <tr>
-            <th className="excel-th-light legacy-row-label">Localidade</th>
-            <td className="excel-td" colSpan={3}>
-              <input
-                className="excel-input"
-                value={dadosCabecalho.localidade}
-                onChange={(e) => onChangeCampo("localidade", e.target.value)}
-              />
-            </td>
-            <th className="excel-th-light legacy-row-label">Data</th>
-            <td className="excel-td" colSpan={3}>
-              <input className="excel-input" value={dadosCabecalho.data} onChange={(e) => onChangeCampo("data", e.target.value)} />
-            </td>
-            <th className="excel-th-light legacy-row-label">Trafo [kVA]</th>
-            <td className="excel-td" colSpan={3}>
-              <input
-                className="excel-input"
-                value={dadosCabecalho.trafoKva}
-                onChange={(e) => onChangeCampo("trafoKva", e.target.value)}
-              />
-            </td>
-            <th className="excel-th-light legacy-row-label">Demanda [A]</th>
-            <td className="excel-td">
-              <input
-                className="excel-input"
-                value={dadosCabecalho.demanda}
-                onChange={(e) => onChangeCampo("demanda", e.target.value)}
-              />
-            </td>
-            <th className="excel-th-light legacy-row-label">Observações</th>
+            <th className="excel-th-light">Referência</th>
             <td className="excel-td" colSpan={2}>
               <input
                 className="excel-input"
-                value={dadosCabecalho.observacoes}
-                onChange={(e) => onChangeCampo("observacoes", e.target.value)}
+                value={dadosCabecalho.dataRef}
+                onChange={(e) => onChangeCampo("dataRef", e.target.value)}
+                placeholder="2015-12-30"
+              />
+            </td>
+            <td />
+            <th className="excel-th-light">Atualização</th>
+            <td className="excel-td">
+              <input
+                className="excel-input"
+                value={dadosCabecalho.dataAtualizacao}
+                onChange={(e) => onChangeCampo("dataAtualizacao", e.target.value)}
+                placeholder="2026-03-17"
               />
             </td>
           </tr>

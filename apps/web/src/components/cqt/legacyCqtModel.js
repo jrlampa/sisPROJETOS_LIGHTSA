@@ -30,33 +30,30 @@ function criarLinhaInicial(id = 1) {
   };
 }
 
-function criarCabecalhoInicial(projetoAtivo) {
+function criarCabecalhoInicial() {
   const hoje = new Date();
-  const data = `${String(hoje.getDate()).padStart(2, "0")}/${String(hoje.getMonth() + 1).padStart(2, "0")}/${hoje.getFullYear()}`;
+  const dataStr = `${String(hoje.getDate()).padStart(2, "0")}/${String(hoje.getMonth() + 1).padStart(2, "0")}/${hoje.getFullYear()}`;
 
   return {
-    nomeProjeto: projetoAtivo?.nome || "",
-    projetista: "",
-    data,
-    localidade: projetoAtivo?.localidade || "",
-    condutores: LINHA_BASE.tipo_cabo,
-    demanda: String(LINHA_BASE.corrente_a),
-    trafoKva: "112.5",
-    tensao: "220",
-    fatorPotencia: "0.92",
-    observacoes: "",
+    trafoMva: "40",
+    impedanciaZ: "20",
+    tensaoKv: "13.2",
+    circuito: "53 SC - MT - A",
+    lanceCqt: "2",
+    dataRef: "2015-12-30",
+    dataAtualizacao: dataStr,
   };
 }
 
-function criarEstadoLadoInicial(projetoAtivo) {
+function criarEstadoLadoInicial() {
   return {
-    cabecalho: criarCabecalhoInicial(projetoAtivo),
+    cabecalho: criarCabecalhoInicial(),
     trechos: [criarLinhaInicial(1)],
   };
 }
 
-function normalizarEstadoLado(estadoBruto, projetoAtivo) {
-  const inicial = criarEstadoLadoInicial(projetoAtivo);
+function normalizarEstadoLado(estadoBruto) {
+  const inicial = criarEstadoLadoInicial();
 
   if (!estadoBruto || typeof estadoBruto !== "object") {
     return inicial;
