@@ -12,7 +12,8 @@
     "test:domain:strict": "python -m pytest -q --cov=packages/domain --cov-fail-under=100 packages/domain/tests",
     "check-parity": "python -m pytest packages/domain/tests/test_excel_parity.py --no-cov",
     "test:parity": "python -m pytest packages/domain/tests/test_excel_parity.py --no-cov -v",
-    "audit:legacy": "python -m scripts.audit_legacy_tracao"
+    "audit:legacy": "python -m scripts.audit_legacy_tracao",
+    "audit:legacy:cqt": "python -m scripts.audit_legacy_cqt"
   },
   "repository": {
     "type": "git",
