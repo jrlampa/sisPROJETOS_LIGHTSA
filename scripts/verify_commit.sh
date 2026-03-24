@@ -26,11 +26,16 @@ for file in $staged_files; do
     continue
   fi
 
-  line_count="$(wc -l < "$file" | tr -d ' ')"
+  line_count="$(cat "$file" \
+    | grep -v '^[[:space:]]*$' \
+    | grep -v '^[[:space:]]*#' \
+    | grep -v '^[[:space:]]*//' \
+    | wc -l \
+    | tr -d ' ')"
 
   if [ "$line_count" -gt 500 ]; then
-    echo "[verify_commit] Commit bloqueado: arquivo '$file' com $line_count linhas (> 500)."
-    echo "[verify_commit] Modularize o codigo antes de commitar."
+    echo "[verify_commit] Commit bloqueado: arquivo '$file' com $line_count linhas de codigo real (> 500)."
+    echo "[verify_commit] Limite: 500 linhas de codigo real (excluindo comentarios e linhas vazias)."
     exit 1
   fi
 done
