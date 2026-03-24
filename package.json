@@ -11,7 +11,8 @@
     "lint-staged": "lint-staged",
     "test:domain:strict": "python -m pytest -q --cov=packages/domain --cov-fail-under=100 packages/domain/tests",
     "check-parity": "python -m pytest packages/domain/tests/test_excel_parity.py --no-cov",
-    "test:parity": "python -m pytest packages/domain/tests/test_excel_parity.py --no-cov -v"
+    "test:parity": "python -m pytest packages/domain/tests/test_excel_parity.py --no-cov -v",
+    "audit:legacy": "python -m scripts.audit_legacy_tracao"
   },
   "repository": {
     "type": "git",
