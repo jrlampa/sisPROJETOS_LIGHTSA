@@ -82,6 +82,9 @@ class TrechoEletrico(BaseModel):
     consumidores_jusante: int | None = Field(default=None, ge=0)
     fases_montante: int | None = Field(default=None, ge=1, le=3)
     fases_jusante: int | None = Field(default=None, ge=1, le=3)
+    # TODO (Legacy Quirks): quando presente, usa a queda percentual do workbook
+    # para reproduzir exatamente o legado Excel em cenarios de paridade.
+    queda_tensao_percent_legacy: float | None = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def validar_parametros(self) -> "TrechoEletrico":
@@ -103,6 +106,9 @@ class TrechoEletrico(BaseModel):
     def queda_tensao_v(self) -> float:
         """Queda de tensao absoluta no trecho em volts."""
 
+        if self.queda_tensao_percent_legacy is not None:
+            return (self.queda_tensao_percent_legacy / 100) * self.tensao_nominal_v
+
         if self.fases == 3:
             return sqrt(3) * self.corrente_a * self.resistencia_total_ohm
         return self.corrente_a * self.resistencia_total_ohm
@@ -111,6 +117,9 @@ class TrechoEletrico(BaseModel):
     @property
     def queda_tensao_percent(self) -> float:
         """Queda percentual de tensao do trecho."""
+
+        if self.queda_tensao_percent_legacy is not None:
+            return self.queda_tensao_percent_legacy
 
         return (self.queda_tensao_v / self.tensao_nominal_v) * 100
 
@@ -153,6 +162,9 @@ class CentroCarga(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     nome: str = Field(min_length=3, max_length=120)
     transformador: Transformador
+    # TODO (Legacy Quirks): o workbook Excel agrega a queda do MT + transformador
+    # ao acumulado de BT. Mantemos esta parcela explicita para paridade 1:1.
+    queda_base_percent: float = Field(default=0, ge=0)
     trechos: tuple[TrechoEletrico, ...] = Field(min_length=1)
 
     @computed_field
@@ -160,7 +172,7 @@ class CentroCarga(BaseModel):
     def queda_total_percent(self) -> float:
         """Soma da queda percentual de tensao em todos os trechos da analise."""
 
-        return sum(trecho.queda_tensao_percent for trecho in self.trechos)
+        return self.queda_base_percent + sum(trecho.queda_tensao_percent for trecho in self.trechos)
 
     @computed_field
     @property

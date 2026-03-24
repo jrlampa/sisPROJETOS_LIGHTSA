@@ -1,40 +1,4 @@
-"""Ponto (1) sheet calculation engine.
-
-Translates all 289 formula cells from Ponto (1) to Python, reproducing
-the Excel computation with identical intermediate ROUND() calls for parity.
-
-Source sheet: Ponto (1) in AP COSMO LDA NOVA 03 - PROJETO 5 - POSTE 1D.xlsm
-Inventory:    python/extract/artifacts/inventory.json
-
-====  ARCHITECTURE  ====
-
-Five calculation BLOCKS — MT1 (rows 12-34), MT2 (rows 38-60),
-BT (rows 64-86), BTZero (rows 88-110), Ramais (rows 112-133).
-
-SHARED-CELL RULES (faithful to workbook formulas):
-  ┌ BT T1 cable data   = MT1 T1 cable data  (C71=C19, C72=C20, C73=C21,
-  │                                           C74=C22, C75=C23)
-  ├ BT T1 wind/cat     = MT1 T1 wind/cat    (C79=C27 … C83=C31)
-  ├ BT T1 geometry     = MT1 T1 geometry    (C66=C14 … C69=C17)
-  ├ BT T2 geometry     = MT1 T2 geometry    (F66=F14, F67=F15, F68=F16)
-  └ BT resultante      = MT1 resultante     (C84=C32)   ← critical!
-
-BT normalized force (F85) = C84 * C70 / (C69*0.9−0.6−0.1)
-   where C84=MT1 total, C69=MT1 T1 alturaPoste, C70=BT T1 alturaAncoragem.
-
-BT angle (F86) uses the CATENARY horizontal/vertical sums over C82:L82,
-C83:L83 — i.e. [MT1-T1 cat_H, BT-T2 cat_H, BT-T3 cat_H, BT-T4 cat_H] etc.
-
-Vector composition (rows 137-141):
-  X[level] = F_tip * cos(angle_rad)
-  Y[level] = F_tip * sin(angle_rad)
-  C140     = √(ΣX² + ΣY²) + C149   (adds pole eccentricity force)
-  C141     = atan2-angle of (ΣX, ΣY)
-
-Verified output (Cosmo LDA project):
-  MT1  217 daN @ 177°   MT2  171 daN @  90°   BT  165 daN @  60°
-  BTZ    0 daN @   0°   RAL    0 daN @   0°   TOTAL 374 daN @ 112°
-"""
+"""Ponto (1) legacy LIGHT calculation engine."""
 
 from __future__ import annotations
 
@@ -58,11 +22,7 @@ from .plan1_tables import (
     lookup_rede_qtd_cabos,
 )
 
-# ── Wind coefficient (constant across all blocks) ──────────────────────────
 WIND_COEFF: float = 0.00471 * 60**2  # 16.956 daN/m²
-
-
-# ── Rounding helpers matching Excel semantics ──────────────────────────────
 
 
 def _r(x: Any, decimals: int = 2) -> Any:
@@ -89,12 +49,6 @@ def _safe_sum(*values: Any) -> float:
 
 
 def _angle_formula(sum_h: float, sum_v: float) -> float:
-    """Excel ATAN-based angle formula used in rows 34/60/86/110/133/141.
-
-    IF sum_H = 0  → ROUNDUP(ATAN(sum_V / 1) * 180/PI, 0)
-    ELIF sum_H < 0 → ATAN(sum_V / sum_H) * 180/PI + 180
-    ELSE           → ATAN(sum_V / sum_H) * 180/PI
-    """
     if sum_h == 0:
         return _roundup(math.atan(sum_v / 1) * 180 / math.pi, 0)
     angle = math.atan(sum_v / sum_h) * 180 / math.pi
@@ -106,9 +60,6 @@ def _angle_formula(sum_h: float, sum_v: float) -> float:
 def _blank(v: Any) -> str:
     """Return ' ' if v represents no active traversal."""
     return " " if not isinstance(v, (int, float)) else v
-
-
-# ── Traversal dataclasses ──────────────────────────────────────────────────
 
 
 @dataclass
@@ -124,19 +75,12 @@ class MTTraversalInput:
 
 @dataclass
 class BTTraversalInput:
-    """BT traversal input.
-
-    T1 geometry (vao/flecha/angulo/altura_poste) is overridden by MT1 T1.
-    T2 geometry  is overridden by MT1 T2.
-    altura_ancoragem is always the BT's own value.
-    """
-
     tipo_rede: str = ""
     tipo_cabo: str = ""
-    vao: float = 0.0  # ignored for T1 and T2 (uses MT1 geometry)
-    flecha: float = 0.0  # ignored for T1 and T2
-    angulo: float = 0.0  # ignored for T1 and T2
-    altura_poste: float = 0.0  # ignored for all (uses MT1 T1 via C69=C17)
+    vao: float = 0.0
+    flecha: float = 0.0
+    angulo: float = 0.0
+    altura_poste: float = 0.0
     altura_ancoragem: float = 0.0
 
 
@@ -161,28 +105,19 @@ class RamaisTraversalInput:
     altura_ancoragem: float = 0.0
 
 
-# ── Per-traversal computed values (rows 19-31 pattern) ────────────────────
-
-
 @dataclass
 class TraversalCalc:
-    """Intermediate values for one traversal (one column, C/F/I/L)."""
-
     active: bool = False
-    # Cable lookups (rows 19-23)
     peso_linear: Any = " "
     diam: Any = " "
     qtd_cabos: Any = " "
     peso_extra: Any = 0
     diam_extra: Any = 0
-    # Totals (rows 24-25)
     diam_total: Any = " "
     peso_total: Any = " "
-    # Wind (rows 26-28)
     wind_coeff: float = WIND_COEFF
     wind_H: Any = " "
     wind_V: Any = " "
-    # Catenary (rows 29-31)
     catenary: Any = " "
     cat_H: Any = ""
     cat_V: Any = ""
@@ -195,35 +130,22 @@ def _calc_mt_traversal(
     flecha: float,
     angulo: float,
 ) -> TraversalCalc:
-    """Compute one MT-style traversal (rows 19-31 pattern).
-    Used by MT1, MT2, and BT T2/T3/T4 (with their own lookups).
-    """
     t = TraversalCalc()
     if not tipo_rede:
         return t
 
     t.active = True
     ang_rad = angulo * math.pi / 180
-
-    # Cable property lookups
     t.peso_linear = lookup_cable_peso(tipo_cabo)
     t.diam = lookup_cable_diam(tipo_cabo)
     t.qtd_cabos = lookup_rede_qtd_cabos(tipo_rede)
-
-    # Cordoalha extra (Plan1 row 22: peso_extra if Compacta)
     t.peso_extra = PESO_MENSAGEIRO if tipo_rede == TIPO_COMPACTA else 0
     t.diam_extra = DIAM_MENSAGEIRO if tipo_rede == TIPO_COMPACTA else 0
-
-    # Totals
     dq = t.qtd_cabos
     t.diam_total = dq * t.diam + t.diam_extra
     t.peso_total = t.peso_linear * dq + t.peso_extra
-
-    # Wind
     t.wind_H = _r(WIND_COEFF * vao / 2 * t.diam_total * math.cos(ang_rad))
     t.wind_V = _r(WIND_COEFF * vao / 2 * t.diam_total * math.sin(ang_rad))
-
-    # Catenary
     if vao > 0 and flecha > 0:
         t.catenary = (t.peso_total * vao**2) / (8 * flecha)
         t.cat_H = _r(t.catenary * math.cos(ang_rad))
@@ -239,12 +161,6 @@ def _calc_mt_traversal(
 def _calc_bt_t1_traversal(
     mt1_t1: TraversalCalc, bt_vao: float, bt_flecha: float, bt_angulo: float
 ) -> TraversalCalc:
-    """BT T1 re-uses ALL cable + wind + catenary values from MT1 T1 (C71=C19 … C83=C31).
-
-    The geometry (vao/flecha/angulo) is ALSO from MT1 T1 (C66=C14 … C68=C16).
-    bt_vao/flecha/angulo arguments come from mt1_t1 traversal input (already embedded
-    in mt1_t1 via _calc_mt_traversal), so we simply return a copy of mt1_t1.
-    """
     if not mt1_t1.active:
         return TraversalCalc()
     import copy
@@ -255,15 +171,10 @@ def _calc_bt_t1_traversal(
 def _calc_bt_t2_traversal(
     tipo_rede: str,
     tipo_cabo: str,
-    # geometry shared from MT1 T2:
     vao: float,
     flecha: float,
     angulo: float,
 ) -> TraversalCalc:
-    """BT T2 uses own cable lookups + MT1 T2 geometry (F66=F14, F67=F15, F68=F16).
-
-    Cable lookup uses Plan1!$N$6:$O$8 (rows 6-8: Multiplexada/Aberta/Armado only).
-    """
     t = TraversalCalc()
     if not tipo_rede:
         return t
@@ -273,7 +184,6 @@ def _calc_bt_t2_traversal(
 
     t.peso_linear = lookup_cable_peso(tipo_cabo)
     t.diam = lookup_cable_diam(tipo_cabo)
-    # BT T2-T4 use only N6:O8 (rows 6-8: Multiplexada/Aberta/Armado)
     t.qtd_cabos = _lookup_bt_rede_qtd(tipo_rede)
     t.peso_extra = PESO_MENSAGEIRO if tipo_rede == TIPO_ARMADO else 0  # F74: Armado, not Compacta!
     t.diam_extra = DIAM_MENSAGEIRO if tipo_rede == TIPO_ARMADO else 0
@@ -298,7 +208,6 @@ def _calc_bt_t2_traversal(
 
 
 def _lookup_bt_rede_qtd(tipo_rede: str) -> float:
-    """Plan1!$N$6:$O$8 – rows for Multiplexada / Aberta / Armado only."""
     _BT_REDE_TABLE = {
         "Multiplexada": 1,
         "Aberta": 3,
@@ -307,13 +216,7 @@ def _lookup_bt_rede_qtd(tipo_rede: str) -> float:
     return _BT_REDE_TABLE.get(tipo_rede.strip(), 0)
 
 
-# ── Level result helpers ───────────────────────────────────────────────────
-
-
 def _level_resultante(traversals: list[TraversalCalc]) -> float:
-    """Compute level resultante (rows 32/58/84 pattern):
-    √(ΣcatH² + ΣcatV²) + √(ΣwindH² + ΣwindV²)
-    """
     sum_cat_h = _safe_sum(*(t.cat_H for t in traversals))
     sum_cat_v = _safe_sum(*(t.cat_V for t in traversals))
     sum_wind_h = _safe_sum(*(t.wind_H for t in traversals))
@@ -322,21 +225,16 @@ def _level_resultante(traversals: list[TraversalCalc]) -> float:
 
 
 def _level_angle(traversals: list[TraversalCalc]) -> float:
-    """Compute level angle (rows 34/60/86/110/133 pattern) from catenary components."""
     sum_h = _safe_sum(*(t.cat_H for t in traversals))
     sum_v = _safe_sum(*(t.cat_V for t in traversals))
     return _angle_formula(sum_h, sum_v)
 
 
 def _normalize(resultante: float, altura_ancoragem: float, altura_poste: float) -> float:
-    """Tip force normalisation: F_tip = resultante * h_anc / (h_poste*0.9 − 0.6 − 0.1)"""
     denom = altura_poste * 0.9 - 0.6 - 0.1
     if denom == 0:
         return 0.0
     return resultante * altura_ancoragem / denom
-
-
-# ── Block-level dataclasses ────────────────────────────────────────────────
 
 
 @dataclass
@@ -357,16 +255,12 @@ class PoloOutput:
     total_tracao: float = 0.0
     total_angulo: float = 0.0
     poste_ecc: float = 0.0
-    # Text outputs (rows 143-148)
     texto_total: str = ""
     texto_mt1: str = ""
     texto_mt2: str = ""
     texto_bt: str = ""
     texto_btz: str = ""
     texto_ral: str = ""
-
-
-# ── Main calculation function ──────────────────────────────────────────────
 
 
 def calcular_polo(
@@ -378,10 +272,6 @@ def calcular_polo(
     tipo_poste: str = "",
     modelo_poste: str = "",
 ) -> PoloOutput:
-    """Main entry point. Reproduces Ponto (1) sheet logic.
-
-    mt1_inputs[0] = T1 (column C), [1] = T2 (col F), [2] = T3 (col I), [3] = T4 (col L)
-    """
     out = PoloOutput()
     _ensure_4(mt1_inputs, MTTraversalInput)
     _ensure_4(mt2_inputs, MTTraversalInput)
@@ -389,7 +279,6 @@ def calcular_polo(
     _ensure_4(btz_inputs, BTZeroTraversalInput)
     _ensure_4(ral_inputs, RamaisTraversalInput)
 
-    # ── MT1 block (rows 12-34) ─────────────────────────────────────────────
     mt1_t = [
         _calc_mt_traversal(i.tipo_rede, i.tipo_cabo, i.vao, i.flecha, i.angulo) for i in mt1_inputs
     ]
@@ -401,7 +290,6 @@ def calcular_polo(
         mt1_res = mt1_ang = mt1_f33 = 0.0
     out.mt1 = LevelResult(resultante=mt1_res, f_tip=mt1_f33, angulo=mt1_ang, traversals=mt1_t)
 
-    # ── MT2 block (rows 38-60) ─────────────────────────────────────────────
     mt2_t = [
         _calc_mt_traversal(i.tipo_rede, i.tipo_cabo, i.vao, i.flecha, i.angulo) for i in mt2_inputs
     ]
@@ -413,47 +301,31 @@ def calcular_polo(
         mt2_res = mt2_ang = mt2_f59 = 0.0
     out.mt2 = LevelResult(resultante=mt2_res, f_tip=mt2_f59, angulo=mt2_ang, traversals=mt2_t)
 
-    # ── BT block (rows 64-86) ──────────────────────────────────────────────
-    # T1: ALL values come from MT1 T1 (C66=C14 … C84=C32)
-    bt_t = [TraversalCalc() for _ in range(4)]
-    bt_t[0] = _calc_bt_t1_traversal(
-        mt1_t[0], mt1_inputs[0].vao, mt1_inputs[0].flecha, mt1_inputs[0].angulo
-    )
-
-    # T2: own cable lookups + MT1 T2 geometry
-    bt_t[1] = _calc_bt_t2_traversal(
-        bt_inputs[1].tipo_rede,
-        bt_inputs[1].tipo_cabo,
-        mt1_inputs[1].vao,  # F66=F14
-        mt1_inputs[1].flecha,  # F67=F15
-        mt1_inputs[1].angulo,  # F68=F16
-    )
-
-    # T3, T4: fully independent
-    for k in (2, 3):
-        bt_t[k] = _calc_bt_t2_traversal(
-            bt_inputs[k].tipo_rede,
-            bt_inputs[k].tipo_cabo,
-            bt_inputs[k].vao,
-            bt_inputs[k].flecha,
-            bt_inputs[k].angulo,
+    # Alguns workbooks resolvem referencias cruzadas dentro da grade BT.
+    bt_t = [
+        _calc_bt_t2_traversal(
+            item.tipo_rede,
+            item.tipo_cabo,
+            item.vao,
+            item.flecha,
+            item.angulo,
         )
+        for item in bt_inputs
+    ]
 
-    # C84 = C32 (BT resultante = MT1 resultante)
-    bt_resultante = mt1_res  # C84=C32
-    # F85: uses C84 (=MT1 res), C70 (BT T1 altAncoragem), C69=C17 (MT1 T1 altPoste)
-    bt_f85 = 0.0
-    if mt1_t[0].active:
+    if bt_t[0].active:
+        bt_resultante = _level_resultante(bt_t)
         bt_f85 = _normalize(
-            bt_resultante, bt_inputs[0].altura_ancoragem, mt1_inputs[0].altura_poste
+            bt_resultante,
+            bt_inputs[0].altura_ancoragem,
+            bt_inputs[0].altura_poste,
         )
-
-    # F86 angle: computed from BT cat_H/cat_V sums (C82=C30 for T1, F82/I82 for T2-T4)
-    bt_ang = _level_angle(bt_t) if mt1_t[0].active else 0.0
+        bt_ang = _level_angle(bt_t)
+    else:
+        bt_resultante = bt_f85 = bt_ang = 0.0
 
     out.bt = LevelResult(resultante=bt_resultante, f_tip=bt_f85, angulo=bt_ang, traversals=bt_t)
 
-    # ── BTZero block (rows 88-110) ─────────────────────────────────────────
     btz_t = [_calc_btzero_traversal(i) for i in btz_inputs]
     if btz_t[0].active:
         btz_res = _level_resultante(btz_t)
@@ -463,7 +335,6 @@ def calcular_polo(
         btz_res = btz_ang = btz_f109 = 0.0
     out.btz = LevelResult(resultante=btz_res, f_tip=btz_f109, angulo=btz_ang, traversals=btz_t)
 
-    # ── Ramais block (rows 112-133) ────────────────────────────────────────
     ral_t = [_calc_ramais_traversal(i) for i in ral_inputs]
     if ral_t[0].active:
         ral_res = _level_resultante(ral_t)
@@ -473,10 +344,7 @@ def calcular_polo(
         ral_res = ral_ang = ral_f132 = 0.0
     out.ral = LevelResult(resultante=ral_res, f_tip=ral_f132, angulo=ral_ang, traversals=ral_t)
 
-    # ── Pole eccentricity (row 149) ────────────────────────────────────────
     out.poste_ecc = lookup_poste_ecc(tipo_poste, modelo_poste) if tipo_poste else 0.0
-
-    # ── Vector composition (rows 137-141) ─────────────────────────────────
     levels = [
         (mt1_f33, mt1_ang),
         (mt2_f59, mt2_ang),
@@ -492,7 +360,6 @@ def calcular_polo(
     out.total_tracao = math.sqrt(sum_x**2 + sum_y**2) + out.poste_ecc
     out.total_angulo = _angle_formula(sum_x, sum_y)
 
-    # ── Text outputs (rows 143-148) ────────────────────────────────────────
     def _txt(f: float) -> str:
         return str(int(round(f)))
 
@@ -526,11 +393,7 @@ def calcular_polo(
     return out
 
 
-# ── BTZero traversal (rows 96-108 pattern) ─────────────────────────────────
-
-
 def _calc_btzero_traversal(inp: BTZeroTraversalInput) -> TraversalCalc:
-    """BTZero uses piecewise qtd_fios lookup from Plan1!J35:L40."""
     t = TraversalCalc()
     if not inp.qtd_ligacoes:
         return t
@@ -538,9 +401,7 @@ def _calc_btzero_traversal(inp: BTZeroTraversalInput) -> TraversalCalc:
     ang_rad = inp.angulo * math.pi / 180
 
     qtd_fios = lookup_btzero_qtd_fios(inp.qtd_ligacoes)
-    # row 100: diam_total = qtd_fios * 0.0115 + 0.0095
     diam_total = qtd_fios * BTZERO_DIAM_POR_FIO + BTZERO_DIAM_MENSAGEIRO
-    # row 101: peso_total = qtd_ligacoes * 0.15 + 0.407
     peso_total = inp.qtd_ligacoes * BTZERO_PESO_POR_LIGACAO + BTZERO_PESO_MENSAGEIRO
 
     t.diam_total = diam_total
@@ -553,11 +414,7 @@ def _calc_btzero_traversal(inp: BTZeroTraversalInput) -> TraversalCalc:
     return t
 
 
-# ── Ramais traversal (rows 120-131 pattern) ────────────────────────────────
-
-
 def _calc_ramais_traversal(inp: RamaisTraversalInput) -> TraversalCalc:
-    """Ramais uses own cable lookup and explicit qtd_cabos (no rede lookup)."""
     t = TraversalCalc()
     if not inp.tipo_cabo or not inp.qtd_cabos:
         return t
@@ -568,9 +425,7 @@ def _calc_ramais_traversal(inp: RamaisTraversalInput) -> TraversalCalc:
     t.diam = lookup_cable_diam(inp.tipo_cabo)
     t.qtd_cabos = inp.qtd_cabos
 
-    # row 123: diam_total = qtd_cabos * diam (no extra)
     t.diam_total = inp.qtd_cabos * t.diam
-    # row 124: peso_total = peso_linear * qtd_cabos (no extra)
     t.peso_total = t.peso_linear * inp.qtd_cabos
 
     t.wind_H = _r(WIND_COEFF * inp.vao / 2 * t.diam_total * math.cos(ang_rad))
@@ -581,10 +436,6 @@ def _calc_ramais_traversal(inp: RamaisTraversalInput) -> TraversalCalc:
     return t
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────
-
-
 def _ensure_4(lst: list, cls) -> None:
-    """Pad list to length 4 with default instances."""
     while len(lst) < 4:
         lst.append(cls())
