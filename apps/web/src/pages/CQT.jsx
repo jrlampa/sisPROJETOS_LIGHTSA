@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -16,6 +16,7 @@ export function CQT() {
   const [abaAtiva, setAbaAtiva] = useState("esquerdo");
   const [estadoEsquerdo, setEstadoEsquerdo] = useState(() => criarEstadoLadoInicial(projetoAtivo));
   const [estadoDireito, setEstadoDireito] = useState(() => criarEstadoLadoInicial(projetoAtivo));
+  const fileInputRef = useRef(null);
   const projetoId = projetoAtivo?.id || null;
 
   useEffect(() => {
@@ -50,6 +51,39 @@ export function CQT() {
     },
   });
 
+  const importMutation = useMutation({
+    mutationFn: async (arquivo) => {
+      const formData = new FormData();
+      formData.append("file", arquivo);
+      const response = await api.post("/cqt/importar-excel", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return response.data;
+    },
+    onSuccess: (estadoImportado) => {
+      setEstadoEsquerdo(normalizarEstadoLado(estadoImportado?.esquerdo, projetoAtivo));
+      setEstadoDireito(normalizarEstadoLado(estadoImportado?.direito, projetoAtivo));
+      setAbaAtiva("esquerdo");
+    },
+  });
+
+  const abrirImportador = () => {
+    fileInputRef.current?.click();
+  };
+
+  const aoSelecionarArquivo = (event) => {
+    const arquivo = event.target.files?.[0];
+    if (!arquivo) return;
+    importMutation.mutate(arquivo);
+    event.target.value = "";
+  };
+
+  const limparLados = () => {
+    setEstadoEsquerdo(criarEstadoLadoInicial(projetoAtivo));
+    setEstadoDireito(criarEstadoLadoInicial(projetoAtivo));
+    setAbaAtiva("esquerdo");
+  };
+
   const totalQueda = useMemo(() => mutation.data?.centro_carga?.queda_total_percent, [mutation.data]);
   const totalEsforcos = useMemo(() => ladoAtivo.trechos.reduce((acc, linha) => acc + toNumberOr(0, linha.esforco_dan || linha.corrente_a), 0), [ladoAtivo.trechos]);
 
@@ -63,6 +97,16 @@ export function CQT() {
 
   return (
     <section className="excel-container">
+      <div className="excel-actions legacy-actions" style={{ marginBottom: 12 }}>
+        <button type="button" className="excel-action-btn" onClick={abrirImportador} disabled={importMutation.isPending}>
+          Importar Planilha Legada
+        </button>
+        <button type="button" className="excel-action-btn" onClick={limparLados}>
+          Limpar
+        </button>
+      </div>
+      <input ref={fileInputRef} type="file" accept=".xlsm,.xlsx" style={{ display: "none" }} onChange={aoSelecionarArquivo} />
+
       <div className="excel-tabs legacy-sheet-tabs">
         <button type="button" className={`excel-tab ${abaAtiva === "esquerdo" ? "excel-tab-active" : ""}`} onClick={() => setAbaAtiva("esquerdo")}>LADO ESQUERDO</button>
         <button type="button" className={`excel-tab ${abaAtiva === "direito" ? "excel-tab-active" : ""}`} onClick={() => setAbaAtiva("direito")}>LADO DIREITO</button>
@@ -82,6 +126,11 @@ export function CQT() {
       {mutation.isError ? (
         <p className="result-box result-bad" style={{ marginBottom: 16 }}>
           Falha no calculo CQT: {mutation.error?.response?.data?.detail || mutation.error?.message || "erro desconhecido"}
+        </p>
+      ) : null}
+      {importMutation.isError ? (
+        <p className="result-box result-bad" style={{ marginBottom: 16 }}>
+          Falha na importacao: {importMutation.error?.response?.data?.detail || importMutation.error?.message || "erro desconhecido"}
         </p>
       ) : null}
     </section>
