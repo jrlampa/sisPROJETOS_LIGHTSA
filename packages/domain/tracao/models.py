@@ -24,6 +24,10 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
+TOLERANCIA_SOBRECARGA_POSTE = 1.05
+LIMIAR_ALERTA_PERCENT = 80.0
+LIMIAR_REPROVACAO_PERCENT = TOLERANCIA_SOBRECARGA_POSTE * 100
+
 
 def utc_now() -> datetime:
     """Padroniza timestamps em UTC para rastreabilidade do resultado."""
@@ -216,7 +220,7 @@ class EstadoMecanico(str, Enum):
     a resistencia nominal do poste:
     - APROVADO:  carregamento <= 80%
     - ALERTA:    80% < carregamento <= 105%
-    - REPROVADO: carregamento > 105%
+    - REPROVADO: carregamento > 105% (tolerancia operacional de +5%)
     """
 
     APROVADO = "APROVADO"
@@ -315,9 +319,9 @@ class Poste(BaseModel):
     def estado_mecanico(self) -> EstadoMecanico:
         """Classificacao tecnica do poste baseada no percentual de carregamento."""
         p = self.percentual_carregamento
-        if p > 105.0:
+        if p > LIMIAR_REPROVACAO_PERCENT:
             return EstadoMecanico.REPROVADO
-        if p > 80.0:
+        if p > LIMIAR_ALERTA_PERCENT:
             return EstadoMecanico.ALERTA
         return EstadoMecanico.APROVADO
 

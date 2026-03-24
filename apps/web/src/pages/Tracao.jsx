@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -27,6 +27,7 @@ export function Tracao() {
   const { obterEstadoTracaoVisual, salvarEstadoTracaoVisual } = useGridStore();
   const [estadoVisual, setEstadoVisual] = useState(criarEstadoInicialTracao);
   const [statusPorSecao, setStatusPorSecao] = useState(STATUS_VAZIO);
+  const fileInputRef = useRef(null);
   const projetoId = projetoAtivo?.id || null;
 
   useEffect(() => {
@@ -50,6 +51,32 @@ export function Tracao() {
     onSuccess: ({ data, postosEntrada }) => setStatusPorSecao(mapearStatusTracao(estadoVisual, postosEntrada, data.resultados)),
   });
 
+  const importMutation = useMutation({
+    mutationFn: async (arquivo) => {
+      const formData = new FormData();
+      formData.append("file", arquivo);
+      const response = await api.post("/tracao/importar-excel", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return response.data;
+    },
+    onSuccess: (estadoImportado) => {
+      setEstadoVisual(normalizarEstadoTracao(estadoImportado));
+      setStatusPorSecao(STATUS_VAZIO);
+    },
+  });
+
+  const abrirImportador = () => {
+    fileInputRef.current?.click();
+  };
+
+  const aoSelecionarArquivo = (event) => {
+    const arquivo = event.target.files?.[0];
+    if (!arquivo) return;
+    importMutation.mutate(arquivo);
+    event.target.value = "";
+  };
+
   const resumo = useMemo(() => resumoTracao(mutation.data?.data?.resultados || []), [mutation.data]);
 
   if (!projetoId) {
@@ -71,11 +98,13 @@ export function Tracao() {
             <td className="excel-td"><input className="excel-input" value={estadoVisual.dadosPoste.modeloPoste} onChange={(e) => setEstadoVisual((p) => atualizarCampoPoste(p, "modeloPoste", e.target.value))} /></td>
             <th className="excel-th-light">Coordenadas</th>
             <td className="excel-td"><input className="excel-input" value={estadoVisual.dadosPoste.coordenadas} onChange={(e) => setEstadoVisual((p) => atualizarCampoPoste(p, "coordenadas", e.target.value))} /></td>
+            <td className="excel-td legacy-cell-center"><button type="button" className="excel-action-btn" onClick={abrirImportador} disabled={importMutation.isPending}>Importar Planilha Legada</button></td>
             <td className="excel-td legacy-cell-center"><button type="button" className="excel-action-btn excel-action-btn-primary" onClick={() => mutation.mutate()} disabled={mutation.isPending}>APAGA/CALCULA</button></td>
           </tr>
-          <tr><td className="legacy-tracao-total" colSpan={7}>TRAÇÃO TOTAL: {resumo.APROVADO + resumo.ALERTA + resumo.REPROVADO} daN</td></tr>
+          <tr><td className="legacy-tracao-total" colSpan={8}>TRAÇÃO TOTAL: {resumo.APROVADO + resumo.ALERTA + resumo.REPROVADO} daN</td></tr>
         </tbody>
       </table>
+      <input ref={fileInputRef} type="file" accept=".xlsm,.xlsx" style={{ display: "none" }} onChange={aoSelecionarArquivo} />
 
       <LegacyTracaoGrid secoes={estadoVisual.secoes} statusPorSecao={statusPorSecao} onChangeTravessia={(secao, idx, campo, valor) => setEstadoVisual((p) => atualizarTravessiaSecao(p, secao, idx, campo, valor))} />
 
@@ -85,6 +114,7 @@ export function Tracao() {
       </div>
 
       {mutation.isError ? <p className="result-box result-bad">Falha no calculo de Tracao: {mutation.error?.response?.data?.detail || mutation.error?.message || "erro desconhecido"}</p> : null}
+      {importMutation.isError ? <p className="result-box result-bad">Falha na importacao: {importMutation.error?.response?.data?.detail || importMutation.error?.message || "erro desconhecido"}</p> : null}
     </section>
   );
 }

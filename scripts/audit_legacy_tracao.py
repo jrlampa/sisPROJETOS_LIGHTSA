@@ -20,6 +20,7 @@ TARGET_DIR = Path(
 )
 REPORT_PATH = PROJECT_ROOT / "legacy_audit_report.csv"
 REL_TOL = 0.0001
+POSTE_OVERLOAD_TOLERANCE = 1.05
 
 
 def _load_workbook_with_copy(path: Path):
@@ -149,9 +150,9 @@ def _audit_file(workbook_path: Path) -> dict[str, str]:
         capacidade_dan = _parse_poste_capacidade_dan(tracao_excel.modelo_poste)
         if capacidade_dan is None:
             human_errors.append("Modelo do poste sem capacidade em daN")
-        elif excel_total > capacidade_dan:
+        elif excel_total > capacidade_dan * POSTE_OVERLOAD_TOLERANCE:
             human_errors.append(
-                f"Tracao Excel ({excel_total:.2f}) excede capacidade do poste ({capacidade_dan:.2f})"
+                f"Tracao Excel ({excel_total:.2f}) excede capacidade do poste com tolerancia de 5% ({capacidade_dan * POSTE_OVERLOAD_TOLERANCE:.2f})"
             )
 
         human_errors.extend(_collect_entry_human_errors(tracao_excel.mt1, "MT1"))
