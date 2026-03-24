@@ -48,6 +48,18 @@ Thumbs.db
 logs/
 *.log
 tmp/
+
+# Audit and inspection scripts (temporary)
+audit_*.csv
+verify_sheets.py
+inspect_all_sheets.py
+inspect_excel_cqt.py
+extract_header_structure.py
+find_cqt_sheets.py
+global_audit_report_*.csv
+legacy_audit_report*.csv
+lint_output.txt
+run_test.py
 temp/
 
 # Test artifacts

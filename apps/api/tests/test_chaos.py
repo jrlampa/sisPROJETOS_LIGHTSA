@@ -87,7 +87,7 @@ def payload_cqt_valido() -> dict:
 
 def test_chaos_cqt_rejeita_strings_no_lugar_de_numeros() -> None:
     client = build_client_admin()
-    projeto_resp = client.post("/projetos/", json=payload_projeto())
+    projeto_resp = client.post("/api/projetos/", json=payload_projeto())
     assert projeto_resp.status_code == 201
     projeto_id = projeto_resp.json()["id"]
 
@@ -95,7 +95,7 @@ def test_chaos_cqt_rejeita_strings_no_lugar_de_numeros() -> None:
     payload["corrente_trafo_a"] = "lixo"
     payload["centro_carga"]["trechos"][0]["comprimento_m"] = "abc"
 
-    response = client.post(f"/projetos/{projeto_id}/cqt", json=payload)
+    response = client.post(f"/api/projetos/{projeto_id}/cqt", json=payload)
 
     assert response.status_code == 422
     assert "Dados invalidos" in response.json()["detail"]
@@ -103,13 +103,13 @@ def test_chaos_cqt_rejeita_strings_no_lugar_de_numeros() -> None:
 
 def test_chaos_dxf_txt_disfarcado_retorna_422_com_mensagem_clara() -> None:
     client = build_client_admin()
-    projeto_resp = client.post("/projetos/", json=payload_projeto("ZNA-CHAOS-002"))
+    projeto_resp = client.post("/api/projetos/", json=payload_projeto("ZNA-CHAOS-002"))
     assert projeto_resp.status_code == 201
     projeto_id = projeto_resp.json()["id"]
 
     fake_file = io.BytesIO(b"isto nao e um ficheiro dxf valido")
     response = client.post(
-        f"/projetos/{projeto_id}/dxf",
+        f"/api/projetos/{projeto_id}/dxf",
         files={"file": ("malicioso.txt", fake_file, "text/plain")},
     )
 
@@ -128,7 +128,7 @@ def test_chaos_jwt_malformado_ou_expirado_retorna_401(token: str) -> None:
     client = build_client_sem_override()
 
     response = client.post(
-        "/projetos/",
+        "/api/projetos/",
         headers={"Authorization": f"Bearer {token}"},
         json=payload_projeto("ZNA-CHAOS-003"),
     )
