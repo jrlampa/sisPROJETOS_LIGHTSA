@@ -12,26 +12,23 @@ from packages.infrastructure.database.models import (
     CentroCargaORM,
     CondutorORM,
     CQTAnaliseORM,
+    PosteProjetoORM,
     ProjetoORM,
     TransformadorORM,
     TrechoEletricoORM,
 )
+from packages.infrastructure.repositories.base_repository import BaseRepository
+from packages.infrastructure.repositories.poste_repository import PosteRepository
 
 
-class CQTRepository:
-    """Persiste resultado de CQT sem vazar ORM para a camada de dominio."""
+class CQTRepositoryultado de CQT sem vazar ORM para a camada de dominio."""
 
     def __init__(self, session: Session) -> None:
-        self._session = session
-
+        super().__init__(session)
+        s
     def salvar_analise_cqt(self, projeto_id: UUID, analise: CQTAnalise) -> CQTAnalise:
-        projeto = self._session.get(ProjetoORM, str(projeto_id))
-        if projeto is None:
-            raise ValueError("Projeto nao encontrado para vincular analise CQT.")
-
-        analise_orm = CQTAnaliseORM(
-            id=str(analise.id),
-            projeto_id=str(projeto_id),
+        self._get_projeto_orm(projeto_id, "Projeto nao encontrado para vincular analise CQT.")
+=ne.
             tipo_projeto=analise.tipo_projeto.value,
             recuperacao_clandestino_confirmada=analise.recuperacao_clandestino_confirmada,
             quantidade_ligacoes_irregulares=analise.quantidade_ligacoes_irregulares,
@@ -63,15 +60,36 @@ class CQTRepository:
         )
         centro_orm.transformador = transformador_orm
 
+        # Cache local para otimização do ORM: evita a criação de registros duplicados
+        # na tabela de condutores quando o mesmo condutor se repete na análise
+        condutores_cache: dict[str, CondutorORM] = {}
+        postes_cache: dict[str, PosteProjetoORM] = {}
+
         for trecho in centro.trechos:
-            condutor_orm = CondutorORM(
-                nome=trecho.condutor.nome,
-                resistencia_ohm_km=trecho.condutor.resistencia_ohm_km,
-                ampacidade_a=trecho.condutor.ampacidade_a,
+            condutor_key = f"{trecho.condutor.nome}_{trecho.condutor.resistencia_ohm_km}"
+            if condutor_key in condutores_cache:
+                condutor_orm = condutores_cache[condutor_key]
+            else:
+                condutor_orm = CondutorORM(
+                    nome=trecho.condutor.nome,
+                    resistencia_ohm_km=trecho.condutor.resistencia_ohm_km,
+                    ampacidade_a=trecho.condutor.ampacidade_a,
+                )
+                condutores_cache[condutor_key] = condutor_orm
+
+            # Busca ou cria os postes de início e fim do trecho
+            poste_de_orm = self._poste_repository.get_or_create_stub(
+                projeto_id, trecho.poste_de_codigo, postes_cache
             )
+            poste_para_orm = self._poste_repository.get_or_create_stub(
+                projeto_id, trecho.poste_para_codigo, postes_cache
+            )
+
             trecho_orm = TrechoEletricoORM(
                 id=str(trecho.id),
-                nome=trecho.nome,
+                # O `nome` agora é uma propriedade computada no domínio
+                poste_de_id=poste_de_orm.id,
+                poste_para_id=poste_para_orm.id,
                 tipo_rede=trecho.tipo_rede.value,
                 fases=trecho.fases,
                 comprimento_m=trecho.comprimento_m,

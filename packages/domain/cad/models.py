@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from math import sqrt
+from math import hypot
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
@@ -57,11 +57,11 @@ class Segmento(BaseModel):
     @computed_field
     @property
     def comprimento_plano_xy(self) -> float:
-        """Calcula a distância plana XY pelo Teorema de Pitágoras."""
+        """Calcula a distância plana XY."""
 
         delta_x = self.ponto_final.x - self.ponto_inicial.x
         delta_y = self.ponto_final.y - self.ponto_inicial.y
-        return sqrt((delta_x**2) + (delta_y**2))
+        return hypot(delta_x, delta_y)
 
 
 class LayerTecnica(BaseModel):

@@ -16,6 +16,9 @@ from apps.api.core.security import require_write_access
 from apps.api.schemas.cqt_schemas import CQTAnaliseRequest, CQTAnaliseResponse
 from packages.application.use_cases.cqt_use_cases import ExecutarAnaliseCQTUseCase
 from packages.domain.tests.excel_parity_support import extract_cqt, find_cell, norm_text, to_float
+from packages.infrastructure.excel_importer.parser import (
+    CQTParserError,
+)
 
 router = APIRouter(tags=["cqt"])
 logger = logging.getLogger(__name__)
@@ -224,9 +227,15 @@ async def importar_excel_cqt(
             "esquerdo": estados["esquerdo"],
             "direito": estados["direito"],
         }
+    except CQTParserError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Erro de parsing na planilha: {exc}",
+        ) from exc
     except HTTPException:
         raise
     except Exception as exc:
+        logger.exception("Falha inesperada ao importar planilha CQT.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Falha ao ler a planilha: {exc}",

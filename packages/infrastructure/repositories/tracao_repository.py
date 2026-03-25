@@ -9,14 +9,17 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from packages.domain.tracao.models import Poste, ResultadoTracao
-from packages.infrastructure.database.models import PosteTracaoORM, ProjetoORM, ResultadoTracaoORM
+from packages.infrastructure.database.models import PosteProjetoORM, ResultadoTracaoORM
+from packages.infrastructure.repositories.base_repository import BaseRepository
+from packages.infrastructure.repositories.poste_repository import PosteRepository
 
 
-class TracaoRepository:
+class TracaoRepository(BaseRepository):
     """Persiste postes e resultados de tracao sem vazar ORM para o dominio."""
 
     def __init__(self, session: Session) -> None:
-        self._session = session
+        super().__init__(session)
+        self._poste_repository = PosteRepository(session)
 
     def salvar_resultados_tracao(
         self,
@@ -35,20 +38,18 @@ class TracaoRepository:
         Raises:
             ValueError: Se o projeto nao existir.
         """
-        projeto = self._session.get(ProjetoORM, str(projeto_id))
-        if projeto is None:
-            raise ValueError("Projeto nao encontrado para vincular resultados de tracao.")
+        self._get_projeto_orm(
+            projeto_id, "Projeto nao encontrado para vincular resultados de tracao."
+        )
 
         resultados: list[ResultadoTracao] = []
-        for poste, resultado in lista_postes_com_resultados:
-            poste_orm = PosteTracaoORM(
-                id=str(poste.id),
-                projeto_id=str(projeto_id),
-                codigo=poste.codigo,
-                resistencia_nominal_daN=poste.resistencia_nominal_daN,
-                vaos_json=[vao.model_dump(mode="json") for vao in poste.vaos],
-            )
+        postes_orm_cache: dict[str, PosteProjetoORM] = {}
 
+        for poste, resultado in lista_postes_com_resultados:
+            # 1. Delega a criação/busca do Poste para o repositório dedicado
+            poste_orm = self._poste_repository.get_or_create(projeto_id, poste, postes_orm_cache)
+
+            # 2. A responsabilidade do TracaoRepository é salvar o RESULTADO do cálculo
             resultado_orm = ResultadoTracaoORM(
                 id=str(resultado.id),
                 esforco_resultante_daN=resultado.esforco_resultante_daN,
@@ -58,7 +59,6 @@ class TracaoRepository:
             )
             poste_orm.resultado = resultado_orm
 
-            self._session.add(poste_orm)
             resultados.append(resultado)
 
         return resultados
@@ -66,10 +66,10 @@ class TracaoRepository:
     def listar_resultados_por_projeto(self, projeto_id: UUID) -> list[dict]:
         """Retorna resultados de tracao persistidos para uso na exportacao."""
         rows = self._session.execute(
-            select(PosteTracaoORM, ResultadoTracaoORM)
-            .join(ResultadoTracaoORM, ResultadoTracaoORM.poste_id == PosteTracaoORM.id)
-            .where(PosteTracaoORM.projeto_id == str(projeto_id))
-            .order_by(PosteTracaoORM.codigo)
+            select(PosteProjetoORM, ResultadoTracaoORM)
+            .join(ResultadoTracaoORM, ResultadoTracaoORM.poste_id == PosteProjetoORM.id)
+            .where(PosteProjetoORM.projeto_id == str(projeto_id))
+            .order_by(PosteProjetoORM.codigo)
         ).all()
 
         return [

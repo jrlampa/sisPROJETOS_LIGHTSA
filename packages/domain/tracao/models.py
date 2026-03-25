@@ -208,6 +208,32 @@ def _calcular_via_motor_legado(
     return output.total_tracao
 
 
+def _calcular_esforco_resultante(poste: "Poste") -> float:
+    """Resultante dos esforcos mecanicos horizontais aplicados ao poste.
+
+    Usa o motor fisico (legacy_engine.calcular_polo) quando
+    ``traversals_fisicas`` esta preenchido; caso contrario, efetua a
+    soma vetorial simples sobre ``vaos``.
+    """
+    if poste.traversals_fisicas:
+        return _calcular_via_motor_legado(
+            poste.traversals_fisicas, poste.tipo_poste, poste.modelo_poste
+        )
+    # Fallback: soma vetorial simples (convencao bussola)
+    fx = sum(v.tracao_daN * sin(radians(v.azimute_graus)) for v in poste.vaos)
+    fy = sum(v.tracao_daN * cos(radians(v.azimute_graus)) for v in poste.vaos)
+    return sqrt(fx**2 + fy**2)
+
+
+def _classificar_estado_mecanico(percentual_carregamento: float) -> "EstadoMecanico":
+    """Classificacao tecnica do poste baseada no percentual de carregamento."""
+    if percentual_carregamento > LIMIAR_REPROVACAO_PERCENT:
+        return EstadoMecanico.REPROVADO
+    if percentual_carregamento > LIMIAR_ALERTA_PERCENT:
+        return EstadoMecanico.ALERTA
+    return EstadoMecanico.APROVADO
+
+
 # ---------------------------------------------------------------------------
 # EstadoMecanico
 # ---------------------------------------------------------------------------
@@ -290,41 +316,6 @@ class Poste(BaseModel):
         description="Modelo do poste para lookup de excentricidade (ECC).",
     )
 
-    @computed_field
-    @property
-    def esforco_resultante_daN(self) -> float:
-        """Resultante dos esforcos mecanicos horizontais aplicados ao poste.
-
-        Usa o motor fisico (legacy_engine.calcular_polo) quando
-        ``traversals_fisicas`` esta preenchido; caso contrario, efetua a
-        soma vetorial simples sobre ``vaos``.
-        """
-        if self.traversals_fisicas:
-            return _calcular_via_motor_legado(
-                self.traversals_fisicas, self.tipo_poste, self.modelo_poste
-            )
-        # Fallback: soma vetorial simples (convencao bussola)
-        fx = sum(v.tracao_daN * sin(radians(v.azimute_graus)) for v in self.vaos)
-        fy = sum(v.tracao_daN * cos(radians(v.azimute_graus)) for v in self.vaos)
-        return sqrt(fx**2 + fy**2)
-
-    @computed_field
-    @property
-    def percentual_carregamento(self) -> float:
-        """Percentual de carregamento em relacao a resistencia nominal."""
-        return (self.esforco_resultante_daN / self.resistencia_nominal_daN) * 100
-
-    @computed_field
-    @property
-    def estado_mecanico(self) -> EstadoMecanico:
-        """Classificacao tecnica do poste baseada no percentual de carregamento."""
-        p = self.percentual_carregamento
-        if p > LIMIAR_REPROVACAO_PERCENT:
-            return EstadoMecanico.REPROVADO
-        if p > LIMIAR_ALERTA_PERCENT:
-            return EstadoMecanico.ALERTA
-        return EstadoMecanico.APROVADO
-
 
 class ResultadoTracao(BaseModel):
     """Registro imutavel do calculo mecanico para um poste em um momento especifico.
@@ -345,10 +336,14 @@ class ResultadoTracao(BaseModel):
     @classmethod
     def calcular(cls, poste: Poste) -> "ResultadoTracao":
         """Instancia o resultado a partir das propriedades calculadas do poste."""
+        esforco = _calcular_esforco_resultante(poste)
+        percentual = (esforco / poste.resistencia_nominal_daN) * 100
+        estado = _classificar_estado_mecanico(percentual)
+
         return cls(
             poste=poste,
-            esforco_resultante_daN=poste.esforco_resultante_daN,
-            percentual_carregamento=poste.percentual_carregamento,
-            estado_mecanico=poste.estado_mecanico,
+            esforco_resultante_daN=esforco,
+            percentual_carregamento=percentual,
+            estado_mecanico=estado,
             calculado_em=utc_now(),
         )

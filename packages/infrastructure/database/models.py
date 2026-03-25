@@ -1,255 +1,174 @@
-"""Mapeamentos ORM para persistencia local-first do projeto e auditoria."""
+"""Entidades e regras puras do motor de CQT."""
 
 from __future__ import annotations
 
-from datetime import datetime
-from uuid import uuid4
+from datetime import datetime, timezone
+from enum import Enum
+from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
-
-class Base(DeclarativeBase):
-    """Base declarativa do SQLAlchemy para a camada de infraestrutura."""
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
-class ProjetoORM(Base):
-    """Representacao persistente do projeto para armazenamento local-first."""
-
-    __tablename__ = "projetos"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    codigo: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
-    nome: Mapped[str] = mapped_column(String(200), nullable=False)
-    localidade: Mapped[str] = mapped_column(String(200), nullable=False)
-    etapa_atual: Mapped[str] = mapped_column(String(40), nullable=False)
-    checklist_triagem: Mapped[dict] = mapped_column(JSON, nullable=False)
-    evidencias: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
-    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    cqt_analises: Mapped[list["CQTAnaliseORM"]] = relationship(
-        back_populates="projeto", cascade="all, delete-orphan"
-    )
-    geometria_cad: Mapped["GeometriaProjetoORM | None"] = relationship(
-        back_populates="projeto", uselist=False, cascade="all, delete-orphan"
-    )
-    postes_tracao: Mapped[list["PosteTracaoORM"]] = relationship(
-        back_populates="projeto", cascade="all, delete-orphan"
-    )
-    pacote_entrega: Mapped["PacoteEntregaORM | None"] = relationship(
-        back_populates="projeto", uselist=False, cascade="all, delete-orphan"
-    )
+def utc_now() -> datetime:
+    """Padroniza timestamps em UTC para rastreabilidade do resultado."""
+    return datetime.now(timezone.utc)
 
 
-class HistoricoAuditoriaORM(Base):
-    """Representacao persistente dos eventos de auditoria do workflow."""
+class TipoProjetoCQT(str, Enum):
+    """Tipos de projeto que podem gerar uma analise CQT."""
 
-    __tablename__ = "historico_auditoria"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    projeto_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("projetos.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    etapa_origem: Mapped[str | None] = mapped_column(String(40), nullable=True)
-    etapa_destino: Mapped[str] = mapped_column(String(40), nullable=False)
-    acao: Mapped[str] = mapped_column(String(200), nullable=False)
-    responsavel: Mapped[str] = mapped_column(String(120), nullable=False)
-    justificativa: Mapped[str | None] = mapped_column(Text, nullable=True)
-    ocorrido_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    RECON = "RECON"
+    CLANDESTINO = "CLANDESTINO"
 
 
-class CQTAnaliseORM(Base):
-    """Representacao persistente da analise CQT associada a um projeto."""
+class TipoRede(str, Enum):
+    """Tipos de rede eletrica de baixa tensao."""
 
-    __tablename__ = "cqt_analises"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    projeto_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("projetos.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    tipo_projeto: Mapped[str] = mapped_column(String(40), nullable=False)
-    recuperacao_clandestino_confirmada: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
-    quantidade_ligacoes_irregulares: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    recebeu_leitura_trafo_maxima: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False
-    )
-    corrente_trafo_a: Mapped[float | None] = mapped_column(Float, nullable=True)
-    carga_maxima_transformador_kva: Mapped[float | None] = mapped_column(Float, nullable=True)
-    limite_carregamento_trafo_percent: Mapped[float] = mapped_column(Float, nullable=False)
-    trafo_dentro_do_limite: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    qdt_total_dentro_do_limite: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-    projeto: Mapped[ProjetoORM] = relationship(back_populates="cqt_analises")
-    centro_carga: Mapped["CentroCargaORM"] = relationship(
-        back_populates="cqt_analise", uselist=False, cascade="all, delete-orphan"
-    )
+    CONVENCIONAL = "CONVENCIONAL"
+    ISOLADA = "ISOLADA"
+    MULTIPLEXADA = "MULTIPLEXADA"
 
 
-class CentroCargaORM(Base):
-    """Representacao persistente do centro de carga da analise CQT."""
+class Condutor(BaseModel):
+    """Propriedades eletricas de um condutor."""
 
-    __tablename__ = "centros_carga"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    cqt_analise_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("cqt_analises.id", ondelete="CASCADE"), nullable=False, unique=True
-    )
-    nome: Mapped[str] = mapped_column(String(120), nullable=False)
-    queda_total_percent: Mapped[float] = mapped_column(Float, nullable=False)
-    possui_erro_02: Mapped[bool] = mapped_column(Boolean, nullable=False)
-
-    cqt_analise: Mapped[CQTAnaliseORM] = relationship(back_populates="centro_carga")
-    transformador: Mapped["TransformadorORM"] = relationship(
-        back_populates="centro_carga", uselist=False, cascade="all, delete-orphan"
-    )
-    trechos: Mapped[list["TrechoEletricoORM"]] = relationship(
-        back_populates="centro_carga", cascade="all, delete-orphan"
-    )
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    nome: str
+    resistencia_ohm_km: float
+    ampacidade_a: float
 
 
-class TransformadorORM(Base):
-    """Representacao persistente do transformador associado ao centro de carga."""
+class TrechoEletrico(BaseModel):
+    """Segmento de circuito entre dois postes, com suas propriedades eletricas."""
 
-    __tablename__ = "transformadores"
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    centro_carga_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("centros_carga.id", ondelete="CASCADE"), nullable=False, unique=True
-    )
-    descricao: Mapped[str] = mapped_column(String(120), nullable=False)
-    potencia_nominal_kva: Mapped[float] = mapped_column(Float, nullable=False)
-    carga_maxima_lida_kva: Mapped[float] = mapped_column(Float, nullable=False)
-    corrente_lida_a: Mapped[float | None] = mapped_column(Float, nullable=True)
-    fator_carga_percent: Mapped[float] = mapped_column(Float, nullable=False)
+    id: UUID = Field(default_factory=uuid4)
+    poste_de_codigo: str = Field(min_length=1, max_length=50)
+    poste_para_codigo: str = Field(min_length=1, max_length=50)
+    condutor: Condutor
+    tipo_rede: TipoRede
+    fases: int = Field(default=3, ge=1, le=3)
+    comprimento_m: float = Field(gt=0)
+    corrente_a: float = Field(ge=0)
+    tensao_nominal_v: float = Field(default=220.0, gt=0)
+    ordem_no_circuito: int = Field(ge=1)
+    consumidores_montante: int | None = Field(default=None, ge=0)
+    consumidores_jusante: int | None = Field(default=None, ge=0)
+    fases_montante: int | None = Field(default=None, ge=1, le=3)
+    fases_jusante: int | None = Field(default=None, ge=1, le=3)
 
-    centro_carga: Mapped[CentroCargaORM] = relationship(back_populates="transformador")
+    @computed_field
+    @property
+    def nome(self) -> str:
+        """Nome do trecho, derivado dos postes de início e fim."""
+        return f"{self.poste_de_codigo}-{self.poste_para_codigo}"
 
+    @computed_field
+    @property
+    def resistencia_total_ohm(self) -> float:
+        """Resistencia total do trecho, considerando o comprimento."""
+        return (self.condutor.resistencia_ohm_km / 1000) * self.comprimento_m
 
-class CondutorORM(Base):
-    """Representacao persistente do condutor utilizado em um trecho eletrico."""
+    @computed_field
+    @property
+    def queda_tensao_v(self) -> float:
+        """Queda de tensao (em Volts) no trecho."""
+        return self.resistencia_total_ohm * self.corrente_a
 
-    __tablename__ = "condutores"
+    @computed_field
+    @property
+    def queda_tensao_percent(self) -> float:
+        """Queda de tensao (em percentual) no trecho."""
+        if self.tensao_nominal_v == 0:
+            return 0.0
+        return (self.queda_tensao_v / self.tensao_nominal_v) * 100
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    nome: Mapped[str] = mapped_column(String(100), nullable=False)
-    resistencia_ohm_km: Mapped[float] = mapped_column(Float, nullable=False)
-    ampacidade_a: Mapped[float] = mapped_column(Float, nullable=False)
+    @property
+    def limite_qdt_percent(self) -> float:
+        """Limite regulatorio de queda de tensao para o tipo de rede."""
+        return 5.0 if self.tipo_rede is TipoRede.CONVENCIONAL else 7.0
 
-    trechos: Mapped[list["TrechoEletricoORM"]] = relationship(back_populates="condutor")
+    @computed_field
+    @property
+    def dentro_do_limite_qdt(self) -> bool:
+        """Indica se o trecho esta dentro do limite de queda de tensao."""
+        return self.queda_tensao_percent <= self.limite_qdt_percent
 
-
-class TrechoEletricoORM(Base):
-    """Representacao persistente de cada trecho calculado na analise CQT."""
-
-    __tablename__ = "trechos_eletricos"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    centro_carga_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("centros_carga.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    condutor_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("condutores.id", ondelete="RESTRICT"), nullable=False, index=True
-    )
-    nome: Mapped[str] = mapped_column(String(120), nullable=False)
-    tipo_rede: Mapped[str] = mapped_column(String(20), nullable=False)
-    fases: Mapped[int] = mapped_column(Integer, nullable=False)
-    comprimento_m: Mapped[float] = mapped_column(Float, nullable=False)
-    corrente_a: Mapped[float] = mapped_column(Float, nullable=False)
-    tensao_nominal_v: Mapped[float] = mapped_column(Float, nullable=False)
-    ordem_no_circuito: Mapped[int] = mapped_column(Integer, nullable=False)
-    consumidores_montante: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    consumidores_jusante: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    fases_montante: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    fases_jusante: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    resistencia_total_ohm: Mapped[float] = mapped_column(Float, nullable=False)
-    queda_tensao_v: Mapped[float] = mapped_column(Float, nullable=False)
-    queda_tensao_percent: Mapped[float] = mapped_column(Float, nullable=False)
-    limite_qdt_percent: Mapped[float] = mapped_column(Float, nullable=False)
-    dentro_do_limite_qdt: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    possui_erro_02: Mapped[bool] = mapped_column(Boolean, nullable=False)
-
-    centro_carga: Mapped[CentroCargaORM] = relationship(back_populates="trechos")
-    condutor: Mapped[CondutorORM] = relationship(back_populates="trechos")
-
-
-class PosteTracaoORM(Base):
-    """Representacao persistente do poste com os vaos de tracao em JSON."""
-
-    __tablename__ = "postes_tracao"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    projeto_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("projetos.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    codigo: Mapped[str] = mapped_column(String(50), nullable=False)
-    resistencia_nominal_daN: Mapped[float] = mapped_column(Float, nullable=False)
-    vaos_json: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
-
-    projeto: Mapped[ProjetoORM] = relationship(back_populates="postes_tracao")
-    resultado: Mapped["ResultadoTracaoORM"] = relationship(
-        back_populates="poste", uselist=False, cascade="all, delete-orphan"
-    )
+    @computed_field
+    @property
+    def possui_erro_02(self) -> bool:
+        """Placeholder para a regra de negocio 'ERRO 02'."""
+        return False
 
 
-class ResultadoTracaoORM(Base):
-    """Representacao persistente do resultado mecanico calculado para um poste."""
+class Transformador(BaseModel):
+    """Transformador que alimenta o centro de carga."""
 
-    __tablename__ = "resultados_tracao"
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    id: UUID = Field(default_factory=uuid4)
+    descricao: str
+    potencia_nominal_kva: float
+    carga_maxima_lida_kva: float = 0.0
+    corrente_lida_a: float | None = None
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    poste_id: Mapped[str] = mapped_column(
-        String(36),
-        ForeignKey("postes_tracao.id", ondelete="CASCADE"),
-        nullable=False,
-        unique=True,
-        index=True,
-    )
-    esforco_resultante_daN: Mapped[float] = mapped_column(Float, nullable=False)
-    percentual_carregamento: Mapped[float] = mapped_column(Float, nullable=False)
-    estado_mecanico: Mapped[str] = mapped_column(String(20), nullable=False)
-    calculado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-    poste: Mapped[PosteTracaoORM] = relationship(back_populates="resultado")
+    @computed_field
+    @property
+    def fator_carga_percent(self) -> float:
+        """Percentual de carregamento do transformador."""
+        if self.potencia_nominal_kva == 0:
+            return 0.0
+        return (self.carga_maxima_lida_kva / self.potencia_nominal_kva) * 100
 
 
-class PacoteEntregaORM(Base):
-    """Representacao persistente dos metadados do ZIP final de entrega."""
+class CentroCarga(BaseModel):
+    """Agregador de trechos eletricos alimentados por um mesmo transformador."""
 
-    __tablename__ = "pacotes_entrega"
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    id: UUID = Field(default_factory=uuid4)
+    nome: str
+    transformador: Transformador
+    trechos: tuple[TrechoEletrico, ...]
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    projeto_id: Mapped[str] = mapped_column(
-        String(36),
-        ForeignKey("projetos.id", ondelete="CASCADE"),
-        nullable=False,
-        unique=True,
-        index=True,
-    )
-    status: Mapped[str] = mapped_column(String(20), nullable=False)
-    caminho_arquivo: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    arquivos_contidos: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
-    mensagem_erro: Mapped[str | None] = mapped_column(Text, nullable=True)
+    @computed_field
+    @property
+    def queda_total_percent(self) -> float:
+        """Queda de tensao acumulada do transformador ate o ultimo consumidor."""
+        return sum(t.queda_tensao_percent for t in self.trechos)
 
-    projeto: Mapped[ProjetoORM] = relationship(back_populates="pacote_entrega")
+    @computed_field
+    @property
+    def possui_erro_02(self) -> bool:
+        """Indica se algum trecho do centro de carga possui 'ERRO 02'."""
+        return any(t.possui_erro_02 for t in self.trechos)
 
 
-class GeometriaProjetoORM(Base):
-    """Persistencia da geometria CAD 2.5D extraida de um ficheiro DXF.
+class CQTAnalise(BaseModel):
+    """Entidade raiz que representa uma analise CQT completa."""
 
-    As coordenadas dos segmentos sao compactadas numa coluna JSON para evitar a
-    criacao de milhares de registros relacionais de pontos, mantendo a performance
-    de leitura/escrita sem sacrificar a rastreabilidade por projeto.
-    """
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    id: UUID = Field(default_factory=uuid4)
+    tipo_projeto: TipoProjetoCQT
+    centro_carga: CentroCarga
+    recuperacao_clandestino_confirmada: bool | None = None
+    quantidade_ligacoes_irregulares: int | None = None
+    recebeu_leitura_trafo_maxima: bool = False
+    corrente_trafo_a: float | None = None
+    carga_maxima_transformador_kva: float | None = None
+    limite_carregamento_trafo_percent: float = 80.0
+    criado_em: datetime = Field(default_factory=utc_now)
 
-    __tablename__ = "geometrias_projeto"
+    @computed_field
+    @property
+    def trafo_dentro_do_limite(self) -> bool:
+        """Indica se o transformador esta operando dentro do limite de carga."""
+        return (
+            self.centro_carga.transformador.fator_carga_percent
+            <= self.limite_carregamento_trafo_percent
+        )
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    projeto_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("projetos.id", ondelete="CASCADE"), nullable=False, unique=True
-    )
-    nome_arquivo: Mapped[str] = mapped_column(String(260), nullable=False)
-    versao_dxf: Mapped[str] = mapped_column(String(20), nullable=False)
-    dados_geometria: Mapped[list] = mapped_column(JSON, nullable=False)
-    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-    projeto: Mapped[ProjetoORM] = relationship(back_populates="geometria_cad")
+    @computed_field
+    @property
+    def qdt_total_dentro_do_limite(self) -> bool:
+        """Indica se a queda de tensao total do circuito esta dentro do limite."""
+        return all(t.dentro_do_limite_qdt for t in self.centro_carga.trechos)

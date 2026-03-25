@@ -145,12 +145,10 @@ class TrechoEletrico(BaseModel):
         Regra: em um fluxo valido, fases e consumidores nao devem aumentar a jusante.
         """
 
-        if self.consumidores_montante is not None and self.consumidores_jusante is not None:
-            if self.consumidores_jusante > self.consumidores_montante:
-                return True
-        if self.fases_montante is not None and self.fases_jusante is not None:
-            if self.fases_jusante > self.fases_montante:
-                return True
+        if self.consumidores_montante is not None and self.consumidores_jusante is not None and self.consumidores_jusante > self.consumidores_montante:
+            return True
+        if self.fases_montante is not None and self.fases_jusante is not None and self.fases_jusante > self.fases_montante:
+            return True
         return False
 
 
@@ -230,8 +228,8 @@ class CQTAnalise(BaseModel):
 
         return all(trecho.dentro_do_limite_qdt for trecho in self.centro_carga.trechos)
 
-    @model_validator(mode="after")
-    def validar_regras_por_contexto(self) -> "CQTAnalise":
+    def _validar_consistencia_geral(self) -> None:
+        """Valida regras de negocio aplicaveis a todos os tipos de projeto."""
         if self.centro_carga.possui_erro_02:
             raise ValueError("Erro 02 detectado: fases ou consumidores aumentaram a jusante.")
 
@@ -240,34 +238,42 @@ class CQTAnalise(BaseModel):
                 "Carregamento do transformador excede o limite permitido para o tipo de projeto."
             )
 
+    def _validar_regras_clandestino(self) -> None:
+        """Valida regras especificas para projetos de recuperacao de clandestinos."""
+        if self.recuperacao_clandestino_confirmada is not True:
+            raise ValueError(
+                "Projeto de clandestinos exige confirmacao de recuperacao de clandestino."
+            )
+        if self.quantidade_ligacoes_irregulares is None:
+            raise ValueError("Projeto de clandestinos exige quantidade de ligacoes irregulares.")
+        if self.recebeu_leitura_trafo_maxima or self.corrente_trafo_a is not None:
+            raise ValueError("Projeto de clandestinos nao deve depender de leitura maxima de trafo.")
+        if self.carga_maxima_transformador_kva is not None:
+            raise ValueError(
+                "Projeto de clandestinos nao deve receber carga maxima informada manualmente na analise CQT."
+            )
+
+    def _validar_regras_projeto_normal(self) -> None:
+        """Valida regras para projetos que nao sao de recuperacao de clandestinos."""
+        if self.recuperacao_clandestino_confirmada is not None:
+            raise ValueError("Campos de clandestino nao podem ser usados em projetos normais.")
+        if self.quantidade_ligacoes_irregulares is not None:
+            raise ValueError(
+                "Quantidade de ligacoes irregulares so pode ser informada em clandestinos."
+            )
+        if self.recebeu_leitura_trafo_maxima:
+            if self.corrente_trafo_a is None or self.carga_maxima_transformador_kva is None:
+                raise ValueError(
+                    "Leitura maxima do trafo exige corrente e carga maxima informadas na analise."
+                )
+
+    @model_validator(mode="after")
+    def validar_regras_por_contexto(self) -> "CQTAnalise":
+        self._validar_consistencia_geral()
+
         if self.tipo_projeto is TipoProjeto.CLANDESTINOS:
-            if self.recuperacao_clandestino_confirmada is not True:
-                raise ValueError(
-                    "Projeto de clandestinos exige confirmacao de recuperacao de clandestino."
-                )
-            if self.quantidade_ligacoes_irregulares is None:
-                raise ValueError(
-                    "Projeto de clandestinos exige quantidade de ligacoes irregulares."
-                )
-            if self.recebeu_leitura_trafo_maxima or self.corrente_trafo_a is not None:
-                raise ValueError(
-                    "Projeto de clandestinos nao deve depender de leitura maxima de trafo."
-                )
-            if self.carga_maxima_transformador_kva is not None:
-                raise ValueError(
-                    "Projeto de clandestinos nao deve receber carga maxima informada manualmente na analise CQT."
-                )
+            self._validar_regras_clandestino()
         else:
-            if self.recuperacao_clandestino_confirmada is not None:
-                raise ValueError("Campos de clandestino nao podem ser usados em projetos normais.")
-            if self.quantidade_ligacoes_irregulares is not None:
-                raise ValueError(
-                    "Quantidade de ligacoes irregulares so pode ser informada em clandestinos."
-                )
-            if self.recebeu_leitura_trafo_maxima:
-                if self.corrente_trafo_a is None or self.carga_maxima_transformador_kva is None:
-                    raise ValueError(
-                        "Leitura maxima do trafo exige corrente e carga maxima informadas na analise."
-                    )
+            self._validar_regras_projeto_normal()
 
         return self
